@@ -327,7 +327,7 @@ else:
                 
                 st.markdown("""
                 <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                    <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.</span>
+                    <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your GROQ_API_KEY in Streamlit secrets.</span>
                 </div>
                 """, unsafe_allow_html=True)
                 generated_content = {
@@ -420,15 +420,6 @@ else:
                                 time.sleep(1)
                                 st.rerun()
 
-                            except pyodbc_error_types() as e:
-                                # Error message with IBM Carbon design tokens
-                                st.markdown(f"""
-                                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#ff8389;'>✗ Database connection failed: {str(e)}</span>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'><strong>Troubleshooting tips:</strong></p>", unsafe_allow_html=True)
-                                st.markdown("<p style='font-size:0.875rem;color:#e0e0e0;'>- Verify server name and database name are correct<br>- Ensure Windows Authentication is available<br>- Confirm network connectivity to the server<br>- Verify ODBC Driver 17 for SQL Server is installed</p>", unsafe_allow_html=True)
                             except ValueError as e:
                                 st.markdown(f"""
                                 <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
@@ -437,7 +428,7 @@ else:
                                 """, unsafe_allow_html=True)
                                 st.markdown("""
                                 <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#78a9ff;'>ℹ The database connected successfully but AI documentation could not be generated. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.</span>
+                                    <span style='color:#78a9ff;'>ℹ The database connected successfully but AI documentation could not be generated. Check your GROQ_API_KEY in Streamlit secrets.</span>
                                 </div>
                                 """, unsafe_allow_html=True)
                             except Exception as e:
@@ -541,7 +532,7 @@ else:
                         """, unsafe_allow_html=True)
                         st.markdown("""
                         <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                            <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.</span>
+                            <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your GROQ_API_KEY in Streamlit secrets.</span>
                         </div>
                         """, unsafe_allow_html=True)
                         generated_content = {

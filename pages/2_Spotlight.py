@@ -75,31 +75,9 @@ if not important_tables:
             """, unsafe_allow_html=True)
             st.markdown(f"<p style='font-size:0.875rem;color:#ff8389;'>{str(e)}</p>", unsafe_allow_html=True)
             
-            # Provide helpful guidance based on the error
-            error_str = str(e).lower()
-            if "api_key" in error_str or "apikey" in error_str:
-                st.markdown("""
+            st.markdown("""
                 <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                    <span style='color:#78a9ff;'><strong>How to fix:</strong><br>
-                    1. Obtain an IBM Cloud API key from https://cloud.ibm.com/iam/apikeys<br>
-                    2. Set the WATSONX_API_KEY environment variable<br>
-                    3. Restart the application</span>
-                </div>
-                """, unsafe_allow_html=True)
-            elif "project_id" in error_str or "project" in error_str:
-                st.markdown("""
-                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                    <span style='color:#78a9ff;'><strong>How to fix:</strong><br>
-                    1. Create or access a watsonx.ai project at https://dataplatform.cloud.ibm.com/<br>
-                    2. Copy the project ID from the project settings<br>
-                    3. Set the WATSONX_PROJECT_ID environment variable<br>
-                    4. Restart the application</span>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                    <span style='color:#78a9ff;'>ℹ Please check your IBM Cloud credentials and watsonx.ai configuration.</span>
+                    <span style='color:#78a9ff;'>ℹ Check your GROQ_API_KEY in Streamlit secrets (Settings &gt; Secrets).</span>
                 </div>
                 """, unsafe_allow_html=True)
             

@@ -5,6 +5,7 @@ Uses llama-3.1-8b-instant model via REST API.
 """
 
 import os
+import re
 import json
 import logging
 import requests
@@ -19,6 +20,20 @@ logger = logging.getLogger(__name__)
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 MODEL_ID = "llama-3.1-8b-instant"
+
+
+def _extract_json(text: str) -> str:
+    """Extract JSON from LLM response, tolerating preamble text and code fences."""
+    text = text.strip()
+    block = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
+    if block:
+        return block.group(1).strip()
+    for start, end in [('[', ']'), ('{', '}')]:
+        s = text.find(start)
+        e = text.rfind(end)
+        if s != -1 and e > s:
+            return text[s:e + 1]
+    return text
 
 
 def _generate_text(prompt: str, max_tokens: int = 1000, temperature: float = 0.3) -> str:
@@ -166,20 +181,7 @@ Tables:
 Return a JSON object where keys are full table names and values are descriptions.
 Example: {{"dbo.Users": "Stores user account credentials and profile information"}}"""
 
-        response_text = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3).strip()
-
-        if response_text.startswith('```'):
-            lines = response_text.split('\n')
-            json_lines = []
-            in_block = False
-            for line in lines:
-                if line.startswith('```'):
-                    in_block = not in_block
-                    continue
-                if in_block:
-                    json_lines.append(line)
-            response_text = '\n'.join(json_lines)
-
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1000, temperature=0.3))
         return json.loads(response_text)
 
     except json.JSONDecodeError:
@@ -244,7 +246,7 @@ def generate_sample_queries(metadata: Dict) -> List[Dict]:
 
         rel_summary = []
         for rel in relationships[:10]:
-            rel_summary.append(f"- {rel.get('from_table', '')} -> {rel.get('to_table', '')}")
+            rel_summary.append(f"- {rel.get('parent_table', '')} -> {rel.get('referenced_table', '')}")
 
         prompt = f"""Generate 10-15 sample SQL queries for database onboarding.
 
@@ -261,20 +263,7 @@ Include SELECT, JOIN, aggregation, and filtering queries.
 Return a JSON array:
 [{{"title": "...", "annotation": "...", "sql": "..."}}]"""
 
-        response_text = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3).strip()
-
-        if response_text.startswith('```'):
-            lines = response_text.split('\n')
-            json_lines = []
-            in_block = False
-            for line in lines:
-                if line.startswith('```'):
-                    in_block = not in_block
-                    continue
-                if in_block:
-                    json_lines.append(line)
-            response_text = '\n'.join(json_lines)
-
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1000, temperature=0.3))
         return json.loads(response_text)
 
     except json.JSONDecodeError:
@@ -303,8 +292,8 @@ def rank_important_tables(metadata: Dict) -> List[Dict]:
 
         connection_counts = {}
         for rel in relationships:
-            from_table = rel.get('from_table', '')
-            to_table = rel.get('to_table', '')
+            from_table = rel.get('parent_table', '')
+            to_table = rel.get('referenced_table', '')
             connection_counts[from_table] = connection_counts.get(from_table, 0) + 1
             connection_counts[to_table] = connection_counts.get(to_table, 0) + 1
 
@@ -343,20 +332,7 @@ Tables sorted by relationships:
 Return a JSON array of exactly 5 objects:
 [{{"table": "schema.name", "description": "...", "reasoning": "...", "connections": 0}}]"""
 
-        response_text = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3).strip()
-
-        if response_text.startswith('```'):
-            lines = response_text.split('\n')
-            json_lines = []
-            in_block = False
-            for line in lines:
-                if line.startswith('```'):
-                    in_block = not in_block
-                    continue
-                if in_block:
-                    json_lines.append(line)
-            response_text = '\n'.join(json_lines)
-
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1000, temperature=0.3))
         ranked_tables = json.loads(response_text)
         return ranked_tables[:5]
 
@@ -411,8 +387,8 @@ def _get_fallback_rankings(metadata: Dict) -> List[Dict]:
     relationships = metadata.get('relationships', [])
     connection_counts = {}
     for rel in relationships:
-        from_table = rel.get('from_table', '')
-        to_table = rel.get('to_table', '')
+        from_table = rel.get('parent_table', '')
+        to_table = rel.get('referenced_table', '')
         connection_counts[from_table] = connection_counts.get(from_table, 0) + 1
         connection_counts[to_table] = connection_counts.get(to_table, 0) + 1
     ranked = []
