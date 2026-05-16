@@ -388,10 +388,15 @@ else:
         elif auth_method == "SQL Server Authentication" and not all([username, password]):
             st.error("Username and Password are required for SQL Server Authentication")
         else:
+            # Use shared memory (lpc:) for local connections — matches how SSMS connects locally
+            server_str = server.strip()
+            is_local = server_str.lower() in ('localhost', '.', '(local)') or server_str.lower().startswith('localhost\\') or server_str.startswith('.\\')
+            effective_server = f"lpc:{server_str}" if is_local else server_str
+
             if auth_method == "Windows Authentication":
                 conn_string = (
                     f"Driver={{ODBC Driver 17 for SQL Server}};"
-                    f"Server={server};"
+                    f"Server={effective_server};"
                     f"Database={database};"
                     f"Trusted_Connection=yes;"
                     f"Connection Timeout={timeout};"
@@ -399,7 +404,7 @@ else:
             else:
                 conn_string = (
                     f"Driver={{ODBC Driver 17 for SQL Server}};"
-                    f"Server={server};"
+                    f"Server={effective_server};"
                     f"Database={database};"
                     f"UID={username};"
                     f"PWD={password};"
@@ -423,10 +428,10 @@ else:
                         st.markdown("""
                         <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
                             <span style='color:#78a9ff;'><strong>Login timeout — common causes:</strong><br>
-                            - SQL Server service is not running (check Services or SQL Server Configuration Manager)<br>
-                            - TCP/IP protocol disabled: open SQL Server Configuration Manager &gt; SQL Server Network Configuration &gt; enable TCP/IP<br>
-                            - Named instance: use <code>localhost\\INSTANCENAME</code> (e.g. <code>localhost\\SQLEXPRESS</code>)<br>
-                            - Firewall blocking port 1433: try <code>localhost,1433</code> as the server name</span>
+                            - Use the exact server name from SSMS: open SSMS, the name shown in the connection dialog is what to enter here<br>
+                            - Named instance: use <code>COMPUTERNAME\\SQLEXPRESS</code> or <code>localhost\\SQLEXPRESS</code><br>
+                            - SQL Server service is not running: check Services or SQL Server Configuration Manager<br>
+                            - TCP/IP disabled: SQL Server Configuration Manager &gt; SQL Server Network Configuration &gt; enable TCP/IP, then restart the service</span>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
