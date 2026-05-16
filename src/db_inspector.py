@@ -39,7 +39,9 @@ def validate_connection(conn_string: str) -> bool:
         True
     """
     try:
-        conn = pyodbc.connect(conn_string, timeout=10)
+        # Note: timeout parameter in pyodbc.connect() is for login timeout only
+        # Connection timeout should be specified in the connection string
+        conn = pyodbc.connect(conn_string)
         cursor = conn.cursor()
         cursor.execute("SELECT 1")
         cursor.fetchone()
@@ -89,7 +91,8 @@ def get_database_metadata(conn_string: str) -> Dict:
             }
     """
     try:
-        conn = pyodbc.connect(conn_string, timeout=30)
+        # Connection timeout is specified in the connection string
+        conn = pyodbc.connect(conn_string)
         cursor = conn.cursor()
         
         # Get database name and server
@@ -234,7 +237,8 @@ def get_table_row_counts(conn_string: str, tables: List[Dict[str, str]]) -> Dict
     row_counts = {}
     
     try:
-        conn = pyodbc.connect(conn_string, timeout=30)
+        # Connection timeout is specified in the connection string
+        conn = pyodbc.connect(conn_string)
         cursor = conn.cursor()
         
         for table in tables:
@@ -293,7 +297,8 @@ def get_sample_data(conn_string: str, table: str, limit: int = 5) -> pd.DataFram
         5
     """
     try:
-        conn = pyodbc.connect(conn_string, timeout=30)
+        # Connection timeout is specified in the connection string
+        conn = pyodbc.connect(conn_string)
         
         # Validate table name format
         if '.' not in table:
@@ -330,7 +335,8 @@ def get_connection_info(conn_string: str) -> Optional[Tuple[str, str]]:
         tuple: (database_name, server) or None if connection fails
     """
     try:
-        conn = pyodbc.connect(conn_string, timeout=10)
+        # Connection timeout is specified in the connection string
+        conn = pyodbc.connect(conn_string)
         cursor = conn.cursor()
         cursor.execute("SELECT DB_NAME() AS database_name, @@SERVERNAME AS server")
         result = cursor.fetchone()

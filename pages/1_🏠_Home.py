@@ -58,6 +58,37 @@ else:
             help="Database name to connect to"
         )
         
+        # Authentication method
+        auth_method = st.radio(
+            "Authentication Method",
+            options=["Windows Authentication", "SQL Server Authentication"],
+            help="Choose how to authenticate with SQL Server"
+        )
+        
+        # SQL Server Authentication fields (only show if selected)
+        username = None
+        password = None
+        if auth_method == "SQL Server Authentication":
+            username = st.text_input(
+                "Username",
+                placeholder="sa",
+                help="SQL Server username"
+            )
+            password = st.text_input(
+                "Password",
+                type="password",
+                help="SQL Server password"
+            )
+        
+        # Connection timeout
+        timeout = st.number_input(
+            "Connection Timeout (seconds)",
+            min_value=5,
+            max_value=120,
+            value=30,
+            help="How long to wait for connection before timing out"
+        )
+        
         # Submit button
         submitted = st.form_submit_button("🔌 Connect and Analyze", type="primary")
     
@@ -66,14 +97,27 @@ else:
         # Validate inputs
         if not all([server, database]):
             st.error("❌ Server and Database fields are required")
+        elif auth_method == "SQL Server Authentication" and not all([username, password]):
+            st.error("❌ Username and Password are required for SQL Server Authentication")
         else:
-            # Build pyodbc connection string with Windows Authentication
-            conn_string = (
-                f"Driver={{ODBC Driver 17 for SQL Server}};"
-                f"Server={server};"
-                f"Database={database};"
-                f"Trusted_Connection=yes;"
-            )
+            # Build pyodbc connection string based on authentication method
+            if auth_method == "Windows Authentication":
+                conn_string = (
+                    f"Driver={{ODBC Driver 17 for SQL Server}};"
+                    f"Server={server};"
+                    f"Database={database};"
+                    f"Trusted_Connection=yes;"
+                    f"Connection Timeout={timeout};"
+                )
+            else:
+                conn_string = (
+                    f"Driver={{ODBC Driver 17 for SQL Server}};"
+                    f"Server={server};"
+                    f"Database={database};"
+                    f"UID={username};"
+                    f"PWD={password};"
+                    f"Connection Timeout={timeout};"
+                )
             
             # Show spinner during introspection
             with st.spinner("🔍 Connecting and analyzing database..."):
