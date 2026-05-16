@@ -389,7 +389,9 @@ else:
             st.error("Username and Password are required for SQL Server Authentication")
         else:
             server_str = server.strip()
-            effective_server = server_str
+            is_local = server_str.lower() in ('localhost', '.', '(local)')
+            # Named pipes avoids TCP/IP requirement for local connections
+            effective_server = f"np:{server_str}" if is_local else server_str
 
             if auth_method == "Windows Authentication":
                 conn_string = (
@@ -397,6 +399,7 @@ else:
                     f"Server={effective_server};"
                     f"Database={database};"
                     f"Trusted_Connection=yes;"
+                    f"TrustServerCertificate=yes;"
                     f"Connection Timeout={timeout};"
                 )
             else:
@@ -406,6 +409,7 @@ else:
                     f"Database={database};"
                     f"UID={username};"
                     f"PWD={password};"
+                    f"TrustServerCertificate=yes;"
                     f"Connection Timeout={timeout};"
                 )
 
