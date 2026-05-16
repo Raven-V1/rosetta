@@ -14,11 +14,11 @@ import streamlit as st
 from src import session_manager, llm_generator, query_executor
 
 # Page title
-st.title("💻 First Queries")
+st.title("Recommended Queries")
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("⚠️ No database connection found. Please connect to a database on the Home page.")
+    st.warning("No database connection found. Please connect to a database on the Home page.")
     st.stop()
 
 # Get data from session
@@ -48,9 +48,9 @@ if not sample_queries:
                 'sample_queries': sample_queries
             })
             
-            st.success(f"✅ Generated {len(sample_queries)} sample queries")
+            st.success(f"Generated {len(sample_queries)} sample queries")
         except Exception as e:
-            st.error(f"❌ Failed to generate sample queries: {str(e)}")
+            st.error(f"Failed to generate sample queries: {str(e)}")
             st.stop()
 
 # Display introduction
@@ -79,7 +79,7 @@ for idx, query in enumerate(sample_queries):
     st.code(sql, language='sql')
     
     # Run Query button
-    if st.button("▶️ Run Query", key=f"run_{idx}"):
+    if st.button("Run Query", key=f"run_{idx}"):
         with st.spinner("Executing query..."):
             try:
                 # Get connection string
@@ -90,10 +90,10 @@ for idx, query in enumerate(sample_queries):
                 
                 # Check if results are empty
                 if df.empty:
-                    st.warning("⚠️ Query executed successfully but returned no results.")
+                    st.warning("Query executed successfully but returned no results.")
                 else:
                     # Show success message with row count
-                    st.success(f"✅ Query executed successfully! Retrieved {len(df)} rows.")
+                    st.success(f"Query executed successfully! Retrieved {len(df)} rows.")
                     
                     # Display results
                     st.dataframe(df, use_container_width=True)
@@ -101,7 +101,7 @@ for idx, query in enumerate(sample_queries):
                     # CSV download button
                     csv_data = df.to_csv(index=False)
                     st.download_button(
-                        label="📥 Download CSV",
+                        label="Download CSV",
                         data=csv_data,
                         file_name=f"query_{idx + 1}_results.csv",
                         mime="text/csv",
@@ -110,10 +110,10 @@ for idx, query in enumerate(sample_queries):
                     
             except ValueError as e:
                 # Handle validation errors
-                st.error(f"❌ Invalid query: {str(e)}")
+                st.error(f"Invalid query: {str(e)}")
             except Exception as e:
                 # Handle other errors
-                st.error(f"❌ Query execution failed: {str(e)}")
+                st.error(f"Query execution failed: {str(e)}")
     
     # Add divider between queries (except after last one)
     if idx < len(sample_queries) - 1:
@@ -121,6 +121,8 @@ for idx, query in enumerate(sample_queries):
 
 # Footer
 st.divider()
-st.markdown("*Made with Bob*")
-
-# Made with Bob
+col1, col2 = st.columns([1, 11])
+with col1:
+    st.image("assets/bob_logo.png", width=30)
+with col2:
+    st.markdown("*Made with Bob*")

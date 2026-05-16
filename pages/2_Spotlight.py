@@ -14,11 +14,11 @@ import streamlit as st
 from src import session_manager, llm_generator
 
 # Page title
-st.title("🎯 Start Here")
+st.title("Spotlight")
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("⚠️ No database connection found. Please connect to a database on the Home page.")
+    st.warning("No database connection found. Please connect to a database on the Home page.")
     st.stop()
 
 # Get data from session
@@ -47,7 +47,7 @@ important_tables = generated.get('important_tables', [])
 
 if not important_tables:
     # Generate important tables using LLM
-    with st.spinner("🔍 Analyzing database structure..."):
+    with st.spinner("Analyzing database structure..."):
         try:
             important_tables = llm_generator.rank_important_tables(metadata)
             
@@ -56,7 +56,7 @@ if not important_tables:
             
         except ValueError as e:
             # Authentication or configuration errors
-            st.error(f"❌ **LLM Configuration Error**")
+            st.error(f"**LLM Configuration Error**")
             st.error(str(e))
             
             # Provide helpful guidance based on the error
@@ -84,7 +84,7 @@ if not important_tables:
             st.stop()
             
         except Exception as e:
-            st.error(f"❌ **Unexpected Error**")
+            st.error(f"**Unexpected Error**")
             st.error(f"An unexpected error occurred while analyzing the database: {str(e)}")
             st.info("Please try refreshing the page or reconnecting to the database.")
             st.divider()
@@ -93,7 +93,7 @@ if not important_tables:
 
 # Display top 5 tables
 if not important_tables:
-    st.info("ℹ️ No tables found to analyze.")
+    st.info("No tables found to analyze.")
     st.divider()
     st.markdown("*Made with Bob*")
     st.stop()
@@ -129,6 +129,8 @@ for idx, table_info in enumerate(important_tables[:5], start=1):
 
 # Footer
 st.divider()
-st.markdown("*Made with Bob*")
-
-# Made with Bob
+col1, col2 = st.columns([1, 11])
+with col1:
+    st.image("assets/bob_logo.png", width=30)
+with col2:
+    st.markdown("*Made with Bob*")

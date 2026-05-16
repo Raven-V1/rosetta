@@ -16,11 +16,11 @@ import streamlit as st
 from src import session_manager
 
 # Page title
-st.title("🗺️ Schema Map")
+st.title("Schema Map")
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("⚠️ No database connection found. Please connect to a database on the Home page.")
+    st.warning("No database connection found. Please connect to a database on the Home page.")
     st.stop()
 
 # Get data from session
@@ -39,7 +39,7 @@ st.divider()
 
 # Check if there are tables to visualize
 if not tables:
-    st.info("ℹ️ No tables found in this database.")
+    st.info("No tables found in this database.")
     st.divider()
     st.markdown("*Made with Bob*")
     st.stop()
@@ -154,7 +154,7 @@ try:
     try:
         agraph(nodes=nodes, edges=edges, config=config)
     except Exception as graph_error:
-        st.warning(f"⚠️ Graph visualization failed: {str(graph_error)}")
+        st.warning(f"Graph visualization failed: {str(graph_error)}")
         st.info("Displaying relationships in table format instead.")
         
         # Fallback: Display relationships as a table
@@ -174,7 +174,7 @@ try:
             
             st.dataframe(rel_data, use_container_width=True)
         else:
-            st.info("ℹ️ No relationships found in this database.")
+            st.info("No relationships found in this database.")
     
     st.divider()
     
@@ -214,7 +214,7 @@ try:
 
 except ImportError:
     # streamlit-agraph not installed
-    st.error("❌ Graph visualization requires the `streamlit-agraph` package.")
+    st.error("Graph visualization requires the `streamlit-agraph` package.")
     st.markdown("""
     To install it, run:
     ```bash
@@ -242,10 +242,12 @@ except ImportError:
         
         st.dataframe(rel_data, use_container_width=True)
     else:
-        st.info("ℹ️ No relationships found in this database.")
+        st.info("No relationships found in this database.")
 
 # Footer
 st.divider()
-st.markdown("*Made with Bob*")
-
-# Made with Bob
+col1, col2 = st.columns([1, 11])
+with col1:
+    st.image("assets/bob_logo.png", width=30)
+with col2:
+    st.markdown("*Made with Bob*")

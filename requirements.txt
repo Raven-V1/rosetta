@@ -5,3 +5,4 @@ ibm-watsonx-ai
 streamlit-agraph==0.0.45
 graphviz==0.21
 python-dotenv==1.2.2
+reportlab

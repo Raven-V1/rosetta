@@ -15,11 +15,11 @@ import streamlit as st
 from src import session_manager
 
 # Page title
-st.title("📊 Overview")
+st.title("Overview")
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("⚠️ No database connection found. Please connect to a database on the Home page.")
+    st.warning("No database connection found. Please connect to a database on the Home page.")
     st.stop()
 
 # Get data from session
@@ -44,19 +44,19 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.metric(
-        label="📋 Tables",
+        label="Tables",
         value=len(tables)
     )
 
 with col2:
     st.metric(
-        label="🔗 Relationships",
+        label="Relationships",
         value=len(relationships)
     )
 
 with col3:
     st.metric(
-        label="⏱️ Introspection Time",
+        label="Introspection Time",
         value=f"{introspection_time:.2f}s"
     )
 
@@ -72,10 +72,11 @@ if overview_text:
     st.markdown(
         f"""
         <div style="
-            background-color: #f0f2f6;
+            background-color: #262626;
+            color: #FFFFFF;
             padding: 20px;
             border-radius: 10px;
-            border-left: 5px solid #4CAF50;
+            border-left: 5px solid #0F62FE;
         ">
             {overview_text}
         </div>
@@ -83,7 +84,7 @@ if overview_text:
         unsafe_allow_html=True
     )
 else:
-    st.info("ℹ️ No overview text available. This is generated during database introspection.")
+    st.info("No overview text available. This is generated during database introspection.")
 
 st.divider()
 
@@ -110,10 +111,12 @@ if sorted_schemas:
         with col2:
             st.markdown(f"{count} tables")
 else:
-    st.info("ℹ️ No tables found in this database.")
+    st.info("No tables found in this database.")
 
 # Footer
 st.divider()
-st.markdown("*Made with Bob*")
-
-# Made with Bob
+col1, col2 = st.columns([1, 11])
+with col1:
+    st.image("assets/bob_logo.png", width=30)
+with col2:
+    st.markdown("*Made with Bob*")

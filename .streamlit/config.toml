@@ -2,17 +2,17 @@
 # This file configures the Streamlit app's appearance and behavior
 
 [theme]
-# Primary theme color (used for interactive elements)
-primaryColor = "#FF4B4B"
+# Primary theme color (used for interactive elements) - Belvenar Blue 60
+primaryColor = "#0F62FE"
 
-# Background color for the main content area
-backgroundColor = "#FFFFFF"
+# Background color for the main content area - Belvenar Gray 100
+backgroundColor = "#161616"
 
-# Background color for sidebar and most interactive widgets
-secondaryBackgroundColor = "#F0F2F6"
+# Background color for sidebar and most interactive widgets - Belvenar Gray 90
+secondaryBackgroundColor = "#262626"
 
-# Color used for almost all text
-textColor = "#262730"
+# Color used for almost all text - White
+textColor = "#FFFFFF"
 
 # Font family for all text in the app
 # Options: "sans serif", "serif", or "monospace"

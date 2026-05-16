@@ -15,11 +15,11 @@ import streamlit as st
 from src import session_manager
 
 # Page title
-st.title("📖 Glossary")
+st.title("Glossary")
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("⚠️ No database connection found. Please connect to a database on the Home page.")
+    st.warning("No database connection found. Please connect to a database on the Home page.")
     st.stop()
 
 # Get data from session
@@ -40,7 +40,7 @@ col1, col2 = st.columns([2, 1])
 with col1:
     # Search box
     search_query = st.text_input(
-        "🔍 Search tables",
+        "Search tables",
         placeholder="Type to filter by table name...",
         label_visibility="collapsed"
     )
@@ -113,29 +113,31 @@ if filtered_tables:
                         <div style="
                             padding: 8px;
                             margin: 4px 0;
-                            background-color: #f9f9f9;
+                            background-color: #262626;
                             border-radius: 5px;
                             display: flex;
                             justify-content: space-between;
                         ">
-                            <span><strong>{col_name}</strong></span>
-                            <span style="color: #666;">{col_type}</span>
+                            <span style="color: #FFFFFF;"><strong>{col_name}</strong></span>
+                            <span style="color: #AAAAAA;">{col_type}</span>
                             <span style="color: {nullable_color}; font-size: 0.85em;">{nullable_indicator}</span>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
             else:
-                st.info("ℹ️ No column information available.")
+                st.info("No column information available.")
 else:
     # No results found
     if search_query or selected_schema != "All Schemas":
-        st.info("🔍 No tables match your search criteria. Try adjusting your filters.")
+        st.info("No tables match your search criteria. Try adjusting your filters.")
     else:
-        st.info("ℹ️ No tables found in this database.")
+        st.info("No tables found in this database.")
 
 # Footer
 st.divider()
-st.markdown("*Made with Bob*")
-
-# Made with Bob
+col1, col2 = st.columns([1, 11])
+with col1:
+    st.image("assets/bob_logo.png", width=30)
+with col2:
+    st.markdown("*Made with Bob*")
