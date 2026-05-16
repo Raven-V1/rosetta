@@ -20,7 +20,7 @@ import logging
 
 try:
     import pyodbc
-    _PYODBC_ERROR = _PYODBC_ERROR
+    _PYODBC_ERROR = pyodbc.Error
 except ImportError:
     pyodbc = None
     _PYODBC_ERROR = type("_NullPyodbcError", (Exception,), {})
