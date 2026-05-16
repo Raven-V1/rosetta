@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Editor sessions
+bob_sessions/
+
+# Generated demo database
+demo_data.db
