@@ -6,7 +6,7 @@ Tier 1 Responsibilities:
 - Generate database overview summary
 - Generate table descriptions
 
-Uses ibm/granite-3-8b-instruct model for efficient content generation.
+Uses ibm/granite-4-h-small model for efficient content generation.
 """
 
 import os
@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Model configuration
-MODEL_ID = "ibm/granite-3-8b-instruct"
+MODEL_ID = "ibm/granite-4-h-small"
 WATSONX_URL = "https://us-south.ml.cloud.ibm.com"
 WATSONX_API_KEY = os.getenv("WATSONX_API_KEY")
 WATSONX_PROJECT_ID = os.getenv("WATSONX_PROJECT_ID")
@@ -106,7 +106,7 @@ def _generate_text(prompt: str, max_tokens: int = 2000, temperature: float = 0.7
     
     token = _get_iam_token()
     
-    url = f"{WATSONX_URL}/ml/v1/text/generation?version=2023-05-29"
+    url = f"{WATSONX_URL}/ml/v1/text/chat?version=2023-05-29"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
@@ -115,7 +115,12 @@ def _generate_text(prompt: str, max_tokens: int = 2000, temperature: float = 0.7
     
     payload = {
         "model_id": MODEL_ID,
-        "input": prompt,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
         "parameters": {
             "max_new_tokens": max_tokens,
             "temperature": temperature,
