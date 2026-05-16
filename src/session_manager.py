@@ -44,6 +44,9 @@ def _initialize_session_state() -> None:
     
     if 'introspection_time' not in st.session_state:
         st.session_state.introspection_time = 0.0
+    
+    if 'saved_connections' not in st.session_state:
+        st.session_state.saved_connections = []
 
 
 def store_metadata(metadata: dict) -> None:

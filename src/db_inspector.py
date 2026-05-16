@@ -14,6 +14,7 @@ All queries are read-only. No ORM used.
 """
 
 import pyodbc
+import sqlite3
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
 import logging
@@ -56,13 +57,102 @@ def validate_connection(conn_string: str) -> bool:
         logger.error(f"Unexpected error during connection validation: {e}")
         return False
 
+def _get_sqlite_metadata(conn_string: str) -> Dict:
+    """
+    Extract metadata from SQLite database.
+    
+    Args:
+        conn_string: SQLite connection string (sqlite:///path)
+        
+    Returns:
+        dict: Database metadata
+    """
+    try:
+        # Extract database path from connection string
+        db_path = conn_string.replace('sqlite:///', '')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        database_name = db_path.split('/')[-1].replace('.db', '')
+        server = 'SQLite'
+        
+        logger.info(f"Extracting metadata from SQLite database: {database_name}")
+        
+        # Get all tables
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+        table_names = [row[0] for row in cursor.fetchall()]
+        
+        tables = []
+        for table_name in table_names:
+            # Get columns for this table
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            columns_raw = cursor.fetchall()
+            
+            columns = []
+            for col in columns_raw:
+                # col format: (cid, name, type, notnull, dflt_value, pk)
+                columns.append({
+                    'name': col[1],
+                    'type': col[2],
+                    'nullable': col[3] == 0  # notnull=0 means nullable
+                })
+            
+            # Get row count
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            row_count = cursor.fetchone()[0]
+            
+            tables.append({
+                'schema': 'main',  # SQLite uses 'main' as default schema
+                'name': table_name,
+                'row_count': row_count,
+                'columns': columns
+            })
+        
+        # Get foreign key relationships
+        relationships = []
+        for table_name in table_names:
+            cursor.execute(f"PRAGMA foreign_key_list({table_name})")
+            fks = cursor.fetchall()
+            
+            for fk in fks:
+                # fk format: (id, seq, table, from, to, on_update, on_delete, match)
+                relationships.append({
+                    'fk_name': f"fk_{table_name}_{fk[3]}",
+                    'parent_table': f"main.{table_name}",
+                    'parent_column': fk[3],
+                    'referenced_table': f"main.{fk[2]}",
+                    'referenced_column': fk[4]
+                })
+        
+        cursor.close()
+        conn.close()
+        
+        metadata = {
+            'database_name': database_name,
+            'server': server,
+            'tables': tables,
+            'relationships': relationships
+        }
+        
+        logger.info(f"SQLite metadata extraction complete: {len(tables)} tables, {len(relationships)} relationships")
+        return metadata
+        
+    except sqlite3.Error as e:
+        logger.error(f"SQLite error during metadata extraction: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during SQLite metadata extraction: {e}")
+        raise
+
+
 
 def get_database_metadata(conn_string: str) -> Dict:
     """
     Extract complete database metadata including tables, columns, and relationships.
+    Supports both SQL Server (via pyodbc) and SQLite (via sqlite3).
     
     Args:
-        conn_string: ODBC connection string
+        conn_string: ODBC connection string or SQLite connection string (sqlite:///path)
         
     Returns:
         dict: Database metadata matching session state schema:
@@ -90,6 +180,10 @@ def get_database_metadata(conn_string: str) -> Dict:
                 ]
             }
     """
+    # Check if this is a SQLite connection
+    if conn_string.startswith('sqlite:///'):
+        return _get_sqlite_metadata(conn_string)
+    
     try:
         # Connection timeout is specified in the connection string
         conn = pyodbc.connect(conn_string)

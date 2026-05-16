@@ -45,27 +45,9 @@ st.divider()
 st.subheader("Preview")
 st.caption("Full markdown content (scrollable):")
 
-# Create a scrollable container with custom height
-st.markdown(
-    """
-    <style>
-    .markdown-preview {
-        max-height: 500px;
-        overflow-y: auto;
-        border: 1px solid #444;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #262626;
-        color: #FFFFFF;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Display full markdown content in a container
-with st.container():
-    st.markdown(f'<div class="markdown-preview">{markdown_content}</div>', unsafe_allow_html=True)
+# Display full markdown content using st.markdown with scrollable container
+with st.container(height=500):
+    st.markdown(markdown_content)
 
 st.divider()
 

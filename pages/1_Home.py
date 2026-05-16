@@ -1,14 +1,6 @@
 """
 Home Page - Database Connection
 Handles initial database connection and introspection.
-
-Responsibilities:
-- Display hero section with title and description
-- Provide connection form for SQL Server credentials
-- Build pyodbc connection string from user inputs
-- Trigger database introspection and LLM content generation
-- Display connection status and results
-- Handle reconnection for already-connected sessions
 """
 
 import streamlit as st
@@ -23,44 +15,307 @@ st.divider()
 
 # Check if already connected
 if session_manager.is_connected():
-    # Already connected - show current database and reconnect option
     metadata = session_manager.get_metadata()
     database_name = metadata.get('database_name', 'Unknown')
     server = metadata.get('server', 'Unknown')
     table_count = len(metadata.get('tables', []))
-    
+
     st.success(f"Connected to **{database_name}** on **{server}**")
     st.info(f"Database contains **{table_count}** tables")
-    
+
     st.divider()
-    
-    # Reconnect button
+
     if st.button("Connect to Different Database", type="primary"):
         session_manager.clear_session()
         st.rerun()
-    
+
 else:
-    # Not connected - show connection tabs
     st.header("Connect to Database")
-    
-    # Initialize saved connections in session state if not exists
-    if 'saved_connections' not in st.session_state:
-        st.session_state.saved_connections = []
-    
-    # Create tabs
+
+    # Initialize saved_connections in session_manager
+    session_manager._initialize_session_state()
+
+    # Try Demo button above tabs
+    if st.button("🎯 Try Demo", type="secondary", use_container_width=True):
+        demo_db_path = "demo_data.db"
+        conn_string = f"sqlite:///{demo_db_path}"
+        
+        with st.spinner("Loading demo database..."):
+            import os
+            import time
+            start_time = time.time()
+            
+            # Check if demo database exists, create if not
+            if not os.path.exists(demo_db_path):
+                st.info("Creating demo database...")
+                import sqlite3
+                conn = sqlite3.connect(demo_db_path)
+                cursor = conn.cursor()
+                
+                # Create tables with realistic data
+                cursor.execute("""
+                    CREATE TABLE customers (
+                        customer_id INTEGER PRIMARY KEY,
+                        first_name TEXT NOT NULL,
+                        last_name TEXT NOT NULL,
+                        email TEXT UNIQUE NOT NULL,
+                        phone TEXT,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                cursor.execute("""
+                    CREATE TABLE products (
+                        product_id INTEGER PRIMARY KEY,
+                        product_name TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        price REAL NOT NULL,
+                        stock_quantity INTEGER DEFAULT 0
+                    )
+                """)
+                
+                cursor.execute("""
+                    CREATE TABLE orders (
+                        order_id INTEGER PRIMARY KEY,
+                        customer_id INTEGER NOT NULL,
+                        order_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                        total_amount REAL NOT NULL,
+                        status TEXT DEFAULT 'pending',
+                        FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+                    )
+                """)
+                
+                cursor.execute("""
+                    CREATE TABLE order_items (
+                        order_item_id INTEGER PRIMARY KEY,
+                        order_id INTEGER NOT NULL,
+                        product_id INTEGER NOT NULL,
+                        quantity INTEGER NOT NULL,
+                        unit_price REAL NOT NULL,
+                        FOREIGN KEY (order_id) REFERENCES orders(order_id),
+                        FOREIGN KEY (product_id) REFERENCES products(product_id)
+                    )
+                """)
+                
+                cursor.execute("""
+                    CREATE TABLE departments (
+                        department_id INTEGER PRIMARY KEY,
+                        department_name TEXT NOT NULL,
+                        location TEXT,
+                        budget REAL
+                    )
+                """)
+                
+                cursor.execute("""
+                    CREATE TABLE employees (
+                        employee_id INTEGER PRIMARY KEY,
+                        first_name TEXT NOT NULL,
+                        last_name TEXT NOT NULL,
+                        department_id INTEGER,
+                        hire_date TEXT,
+                        salary REAL,
+                        FOREIGN KEY (department_id) REFERENCES departments(department_id)
+                    )
+                """)
+                
+                # Insert sample data
+                customers_data = [
+                    (1, 'John', 'Doe', 'john.doe@email.com', '555-0101', '2024-01-15'),
+                    (2, 'Jane', 'Smith', 'jane.smith@email.com', '555-0102', '2024-01-16'),
+                    (3, 'Bob', 'Johnson', 'bob.j@email.com', '555-0103', '2024-01-17'),
+                    (4, 'Alice', 'Williams', 'alice.w@email.com', '555-0104', '2024-01-18'),
+                    (5, 'Charlie', 'Brown', 'charlie.b@email.com', '555-0105', '2024-01-19'),
+                    (6, 'Diana', 'Davis', 'diana.d@email.com', '555-0106', '2024-01-20'),
+                    (7, 'Eve', 'Miller', 'eve.m@email.com', '555-0107', '2024-01-21'),
+                    (8, 'Frank', 'Wilson', 'frank.w@email.com', '555-0108', '2024-01-22'),
+                    (9, 'Grace', 'Moore', 'grace.m@email.com', '555-0109', '2024-01-23'),
+                    (10, 'Henry', 'Taylor', 'henry.t@email.com', '555-0110', '2024-01-24'),
+                    (11, 'Ivy', 'Anderson', 'ivy.a@email.com', '555-0111', '2024-01-25'),
+                    (12, 'Jack', 'Thomas', 'jack.t@email.com', '555-0112', '2024-01-26'),
+                    (13, 'Kate', 'Jackson', 'kate.j@email.com', '555-0113', '2024-01-27'),
+                    (14, 'Leo', 'White', 'leo.w@email.com', '555-0114', '2024-01-28'),
+                    (15, 'Mia', 'Harris', 'mia.h@email.com', '555-0115', '2024-01-29'),
+                    (16, 'Noah', 'Martin', 'noah.m@email.com', '555-0116', '2024-01-30'),
+                    (17, 'Olivia', 'Garcia', 'olivia.g@email.com', '555-0117', '2024-01-31'),
+                    (18, 'Paul', 'Martinez', 'paul.m@email.com', '555-0118', '2024-02-01'),
+                    (19, 'Quinn', 'Robinson', 'quinn.r@email.com', '555-0119', '2024-02-02'),
+                    (20, 'Ruby', 'Clark', 'ruby.c@email.com', '555-0120', '2024-02-03')
+                ]
+                cursor.executemany('INSERT INTO customers VALUES (?, ?, ?, ?, ?, ?)', customers_data)
+                
+                products_data = [
+                    (1, 'Laptop Pro', 'Electronics', 1299.99, 50),
+                    (2, 'Wireless Mouse', 'Electronics', 29.99, 200),
+                    (3, 'USB-C Cable', 'Accessories', 19.99, 500),
+                    (4, 'Monitor 27"', 'Electronics', 399.99, 75),
+                    (5, 'Keyboard Mechanical', 'Electronics', 149.99, 100),
+                    (6, 'Webcam HD', 'Electronics', 79.99, 150),
+                    (7, 'Headphones', 'Electronics', 199.99, 120),
+                    (8, 'Desk Lamp', 'Furniture', 49.99, 80),
+                    (9, 'Office Chair', 'Furniture', 299.99, 40),
+                    (10, 'Standing Desk', 'Furniture', 599.99, 25),
+                    (11, 'Notebook Set', 'Stationery', 14.99, 300),
+                    (12, 'Pen Pack', 'Stationery', 9.99, 400),
+                    (13, 'Tablet 10"', 'Electronics', 449.99, 60),
+                    (14, 'Phone Case', 'Accessories', 24.99, 250),
+                    (15, 'Screen Protector', 'Accessories', 12.99, 350),
+                    (16, 'Power Bank', 'Electronics', 39.99, 180),
+                    (17, 'Backpack', 'Accessories', 69.99, 90),
+                    (18, 'Water Bottle', 'Accessories', 19.99, 200),
+                    (19, 'Desk Organizer', 'Furniture', 34.99, 110),
+                    (20, 'Cable Management', 'Accessories', 15.99, 220)
+                ]
+                cursor.executemany('INSERT INTO products VALUES (?, ?, ?, ?, ?)', products_data)
+                
+                departments_data = [
+                    (1, 'Sales', 'New York', 500000),
+                    (2, 'Engineering', 'San Francisco', 1200000),
+                    (3, 'Marketing', 'Chicago', 400000),
+                    (4, 'HR', 'Boston', 300000),
+                    (5, 'Finance', 'New York', 600000),
+                    (6, 'Operations', 'Seattle', 450000),
+                    (7, 'Customer Support', 'Austin', 350000),
+                    (8, 'Product', 'San Francisco', 800000),
+                    (9, 'Legal', 'New York', 400000),
+                    (10, 'IT', 'Seattle', 550000),
+                    (11, 'Research', 'Boston', 700000),
+                    (12, 'Design', 'Los Angeles', 500000),
+                    (13, 'Quality Assurance', 'Austin', 400000),
+                    (14, 'Business Development', 'Chicago', 450000),
+                    (15, 'Data Analytics', 'San Francisco', 650000),
+                    (16, 'Security', 'Seattle', 500000),
+                    (17, 'Training', 'Boston', 300000),
+                    (18, 'Procurement', 'Chicago', 350000),
+                    (19, 'Facilities', 'New York', 250000),
+                    (20, 'Communications', 'Los Angeles', 400000)
+                ]
+                cursor.executemany('INSERT INTO departments VALUES (?, ?, ?, ?)', departments_data)
+                
+                employees_data = [
+                    (1, 'Sarah', 'Connor', 2, '2020-03-15', 95000),
+                    (2, 'John', 'Reese', 2, '2019-06-01', 105000),
+                    (3, 'Emily', 'Chen', 1, '2021-01-10', 75000),
+                    (4, 'Michael', 'Scott', 3, '2018-09-20', 85000),
+                    (5, 'Pam', 'Beesly', 4, '2019-11-05', 65000),
+                    (6, 'Jim', 'Halpert', 1, '2020-02-14', 78000),
+                    (7, 'Dwight', 'Schrute', 1, '2017-05-30', 82000),
+                    (8, 'Angela', 'Martin', 5, '2018-08-12', 72000),
+                    (9, 'Kevin', 'Malone', 5, '2019-04-22', 68000),
+                    (10, 'Oscar', 'Martinez', 5, '2020-07-18', 74000),
+                    (11, 'Stanley', 'Hudson', 1, '2016-12-01', 80000),
+                    (12, 'Phyllis', 'Vance', 1, '2017-03-25', 76000),
+                    (13, 'Ryan', 'Howard', 8, '2021-06-15', 70000),
+                    (14, 'Kelly', 'Kapoor', 7, '2020-09-08', 62000),
+                    (15, 'Toby', 'Flenderson', 4, '2018-01-20', 67000),
+                    (16, 'Creed', 'Bratton', 13, '2015-11-11', 71000),
+                    (17, 'Meredith', 'Palmer', 6, '2017-07-04', 69000),
+                    (18, 'Darryl', 'Philbin', 6, '2019-02-28', 73000),
+                    (19, 'Andy', 'Bernard', 1, '2020-10-12', 77000),
+                    (20, 'Erin', 'Hannon', 7, '2021-03-05', 58000)
+                ]
+                cursor.executemany('INSERT INTO employees VALUES (?, ?, ?, ?, ?, ?)', employees_data)
+                
+                orders_data = [
+                    (1, 1, '2024-02-01', 1329.98, 'completed'),
+                    (2, 2, '2024-02-02', 429.98, 'completed'),
+                    (3, 3, '2024-02-03', 199.99, 'shipped'),
+                    (4, 4, '2024-02-04', 649.98, 'completed'),
+                    (5, 5, '2024-02-05', 79.99, 'pending'),
+                    (6, 6, '2024-02-06', 899.98, 'completed'),
+                    (7, 7, '2024-02-07', 149.99, 'shipped'),
+                    (8, 8, '2024-02-08', 1899.97, 'completed'),
+                    (9, 9, '2024-02-09', 334.98, 'pending'),
+                    (10, 10, '2024-02-10', 599.99, 'completed'),
+                    (11, 11, '2024-02-11', 24.98, 'completed'),
+                    (12, 12, '2024-02-12', 449.99, 'shipped'),
+                    (13, 13, '2024-02-13', 94.98, 'completed'),
+                    (14, 14, '2024-02-14', 1299.99, 'pending'),
+                    (15, 15, '2024-02-15', 279.98, 'completed'),
+                    (16, 16, '2024-02-16', 39.99, 'shipped'),
+                    (17, 17, '2024-02-17', 69.99, 'completed'),
+                    (18, 18, '2024-02-18', 54.98, 'completed'),
+                    (19, 19, '2024-02-19', 299.99, 'pending'),
+                    (20, 20, '2024-02-20', 179.97, 'completed')
+                ]
+                cursor.executemany('INSERT INTO orders VALUES (?, ?, ?, ?, ?)', orders_data)
+                
+                order_items_data = [
+                    (1, 1, 1, 1, 1299.99), (2, 1, 2, 1, 29.99),
+                    (3, 2, 4, 1, 399.99), (4, 2, 2, 1, 29.99),
+                    (5, 3, 7, 1, 199.99),
+                    (6, 4, 1, 1, 1299.99), (7, 4, 5, 1, 149.99), (8, 4, 3, 10, 19.99),
+                    (9, 5, 6, 1, 79.99),
+                    (10, 6, 10, 1, 599.99), (11, 6, 9, 1, 299.99),
+                    (12, 7, 5, 1, 149.99),
+                    (13, 8, 1, 1, 1299.99), (14, 8, 10, 1, 599.99),
+                    (15, 9, 9, 1, 299.99), (16, 9, 14, 1, 24.99), (17, 9, 15, 1, 12.99),
+                    (18, 10, 10, 1, 599.99),
+                    (19, 11, 11, 1, 14.99), (20, 11, 12, 1, 9.99),
+                    (21, 12, 13, 1, 449.99),
+                    (22, 13, 14, 2, 24.99), (23, 13, 15, 2, 12.99), (24, 13, 3, 1, 19.99),
+                    (25, 14, 1, 1, 1299.99),
+                    (26, 15, 7, 1, 199.99), (27, 15, 6, 1, 79.99),
+                    (28, 16, 16, 1, 39.99),
+                    (29, 17, 17, 1, 69.99),
+                    (30, 18, 18, 2, 19.99), (31, 18, 15, 1, 12.99),
+                    (32, 19, 9, 1, 299.99),
+                    (33, 20, 2, 3, 29.99), (34, 20, 3, 5, 19.99)
+                ]
+                cursor.executemany('INSERT INTO order_items VALUES (?, ?, ?, ?, ?)', order_items_data)
+                
+                conn.commit()
+                conn.close()
+                st.success("Demo database created!")
+            
+            try:
+                st.write("Extracting database metadata...")
+                metadata = db_inspector.get_database_metadata(conn_string)
+                
+                st.write("Generating AI-powered documentation...")
+                generated_content = llm_generator.generate_tier1_content(metadata)
+                
+                elapsed_time = time.time() - start_time
+                
+                session_manager.store_metadata(metadata)
+                session_manager.store_generated_content(generated_content)
+                session_manager.set_connected(True, conn_string)
+                session_manager.set_introspection_time(elapsed_time)
+                
+                st.success(f"Successfully connected to demo database!")
+                st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
+                time.sleep(1)
+                st.rerun()
+                
+            except ValueError as e:
+                st.warning(f"AI generation failed: {str(e)}")
+                st.info("Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.")
+                generated_content = {
+                    'overview': llm_generator._get_fallback_overview(metadata),
+                    'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
+                }
+                elapsed_time = time.time() - start_time
+                session_manager.store_metadata(metadata)
+                session_manager.store_generated_content(generated_content)
+                session_manager.set_connected(True, conn_string)
+                session_manager.set_introspection_time(elapsed_time)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Demo connection failed: {str(e)}")
+
+    st.divider()
+
     tab1, tab2 = st.tabs(["Saved Connections", "New Connection"])
-    
-    # Tab 1: Saved Connections
+
     with tab1:
         if len(st.session_state.saved_connections) == 0:
             st.info("No saved connections yet. Use the New Connection tab to create your first connection.")
         else:
             st.markdown("Select a saved connection to connect:")
-            st.markdown("")  # Add spacing
-            
+            st.markdown("")
+
             for idx, saved_conn in enumerate(st.session_state.saved_connections):
                 col1, col2 = st.columns([3, 1])
-                
+
                 with col1:
                     display_name = f"{saved_conn['server']} - {saved_conn['database']}"
                     st.markdown(f"**{display_name}**")
@@ -68,136 +323,107 @@ else:
                     if saved_conn['auth_method'] == "SQL Server Authentication":
                         auth_display += f" (User: {saved_conn.get('username', 'N/A')})"
                     st.caption(f"Auth: {auth_display} | Timeout: {saved_conn['timeout']}s")
-                
+
                 with col2:
                     if st.button("Connect", key=f"connect_saved_{idx}", type="primary"):
-                        # Build connection string from saved connection
-                        server = saved_conn['server']
-                        database = saved_conn['database']
-                        auth_method = saved_conn['auth_method']
-                        timeout = saved_conn['timeout']
-                        
-                        # Check if SQL Server Authentication (password not stored)
-                        if auth_method == "SQL Server Authentication":
-                            username = saved_conn.get('username', '')
-                            # Note: Password not stored for security - would need re-entry
+                        server_val = saved_conn['server']
+                        database_val = saved_conn['database']
+                        auth_method_val = saved_conn['auth_method']
+                        timeout_val = saved_conn['timeout']
+
+                        if auth_method_val == "SQL Server Authentication":
                             st.error("SQL Server Authentication connections require password re-entry. Please use the New Connection tab.")
                             st.stop()
-                        
-                        # Build connection string for Windows Authentication
+
                         conn_string = (
                             f"Driver={{ODBC Driver 17 for SQL Server}};"
-                            f"Server={server};"
-                            f"Database={database};"
+                            f"Server={server_val};"
+                            f"Database={database_val};"
                             f"Trusted_Connection=yes;"
-                            f"Connection Timeout={timeout};"
+                            f"Connection Timeout={timeout_val};"
                         )
-                        
-                        # Show spinner during introspection
+
                         with st.spinner("Connecting and analyzing database..."):
                             start_time = time.time()
-                            
                             try:
-                                # Step 1: Get database metadata
                                 st.write("Extracting database metadata...")
                                 metadata = db_inspector.get_database_metadata(conn_string)
-                                
-                                # Step 2: Generate LLM content
+
                                 st.write("Generating AI-powered documentation...")
                                 generated_content = llm_generator.generate_tier1_content(metadata)
-                                
-                                # Calculate elapsed time
+
                                 elapsed_time = time.time() - start_time
-                                
-                                # Step 3: Store in session state
+
                                 session_manager.store_metadata(metadata)
                                 session_manager.store_generated_content(generated_content)
                                 session_manager.set_connected(True, conn_string)
                                 session_manager.set_introspection_time(elapsed_time)
-                                
-                                # Success message
-                                st.success(f"Successfully connected to **{metadata['database_name']}** on **{metadata['server']}**")
+
+                                st.success(f"Successfully connected to **{metadata['database_name']}**")
                                 st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
-                                
-                                # Rerun to show connected state
                                 time.sleep(1)
                                 st.rerun()
-                                
-                            except Exception as e:
-                                # Error handling
-                                st.error(f"Connection failed: {str(e)}")
+
+                            except pyodbc_error_types() as e:
+                                st.error(f"Database connection failed: {str(e)}")
                                 st.markdown("""
                                 **Troubleshooting tips:**
                                 - Verify server name and database name are correct
-                                - Ensure SQL Server authentication is enabled
-                                - Check username and password credentials
+                                - Ensure Windows Authentication is available
                                 - Confirm network connectivity to the server
                                 - Verify ODBC Driver 17 for SQL Server is installed
                                 """)
-                
+                            except ValueError as e:
+                                st.error(f"AI generation failed: {str(e)}")
+                                st.info("The database connected successfully but AI documentation could not be generated. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.")
+                            except Exception as e:
+                                st.error(f"Unexpected error: {str(e)}")
+
                 st.divider()
-    
-    # Tab 2: New Connection
+
     with tab2:
         st.markdown("Enter your SQL Server connection details to begin.")
-        
-        # Connection form
+
         with st.form("connection_form"):
             server = st.text_input(
                 "Server",
-                placeholder="server.domain.com",
+                value="localhost",
                 help="SQL Server hostname or IP address"
             )
-            
+
             database = st.text_input(
                 "Database",
-                placeholder="AdventureWorks2025",
+                value="AdventureWorks2025",
                 help="Database name to connect to"
             )
-            
-            # Authentication method
+
             auth_method = st.radio(
                 "Authentication Method",
                 options=["Windows Authentication", "SQL Server Authentication"],
                 help="Choose how to authenticate with SQL Server"
             )
-            
-            # SQL Server Authentication fields (only show if selected)
+
             username = None
             password = None
             if auth_method == "SQL Server Authentication":
-                username = st.text_input(
-                    "Username",
-                    placeholder="sa",
-                    help="SQL Server username"
-                )
-                password = st.text_input(
-                    "Password",
-                    type="password",
-                    help="SQL Server password"
-                )
-            
-            # Connection timeout
+                username = st.text_input("Username", placeholder="sa")
+                password = st.text_input("Password", type="password")
+
             timeout = st.number_input(
                 "Connection Timeout (seconds)",
                 min_value=5,
                 max_value=120,
-                value=30,
-                help="How long to wait for connection before timing out"
+                value=30
             )
-            
-            # Submit button
+
             submitted = st.form_submit_button("Connect and Analyze", type="primary")
-        
-        # Process connection when form is submitted
+
         if submitted:
-            # Validate inputs
             if not all([server, database]):
                 st.error("Server and Database fields are required")
             elif auth_method == "SQL Server Authentication" and not all([username, password]):
                 st.error("Username and Password are required for SQL Server Authentication")
             else:
-                # Build pyodbc connection string based on authentication method
                 if auth_method == "Windows Authentication":
                     conn_string = (
                         f"Driver={{ODBC Driver 17 for SQL Server}};"
@@ -215,57 +441,16 @@ else:
                         f"PWD={password};"
                         f"Connection Timeout={timeout};"
                     )
-                
-                # Show spinner during introspection
+
                 with st.spinner("Connecting and analyzing database..."):
                     start_time = time.time()
-                    
+
+                    # Step 1: Test database connection first
                     try:
-                        # Step 1: Get database metadata
                         st.write("Extracting database metadata...")
                         metadata = db_inspector.get_database_metadata(conn_string)
-                        
-                        # Step 2: Generate LLM content
-                        st.write("Generating AI-powered documentation...")
-                        generated_content = llm_generator.generate_tier1_content(metadata)
-                        
-                        # Calculate elapsed time
-                        elapsed_time = time.time() - start_time
-                        
-                        # Step 3: Store in session state
-                        session_manager.store_metadata(metadata)
-                        session_manager.store_generated_content(generated_content)
-                        session_manager.set_connected(True, conn_string)
-                        session_manager.set_introspection_time(elapsed_time)
-                        
-                        # Step 4: Save connection to saved_connections if not already there
-                        connection_key = f"{server}|{database}"
-                        existing_keys = [f"{conn['server']}|{conn['database']}" for conn in st.session_state.saved_connections]
-                        
-                        if connection_key not in existing_keys:
-                            saved_conn = {
-                                'server': server,
-                                'database': database,
-                                'auth_method': auth_method,
-                                'timeout': timeout
-                            }
-                            if auth_method == "SQL Server Authentication":
-                                saved_conn['username'] = username
-                                # Note: Password not saved for security reasons
-                            
-                            st.session_state.saved_connections.append(saved_conn)
-                        
-                        # Success message
-                        st.success(f"Successfully connected to **{metadata['database_name']}** on **{metadata['server']}**")
-                        st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
-                        
-                        # Rerun to show connected state
-                        time.sleep(1)
-                        st.rerun()
-                        
                     except Exception as e:
-                        # Error handling
-                        st.error(f"Connection failed: {str(e)}")
+                        st.error(f"Database connection failed: {str(e)}")
                         st.markdown("""
                         **Troubleshooting tips:**
                         - Verify server name and database name are correct
@@ -274,6 +459,52 @@ else:
                         - Confirm network connectivity to the server
                         - Verify ODBC Driver 17 for SQL Server is installed
                         """)
+                        st.stop()
+
+                    # Step 2: Generate LLM content separately
+                    try:
+                        st.write("Generating AI-powered documentation...")
+                        generated_content = llm_generator.generate_tier1_content(metadata)
+                    except ValueError as e:
+                        st.warning(f"AI generation failed: {str(e)}")
+                        st.info("Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.")
+                        generated_content = {
+                            'overview': llm_generator._get_fallback_overview(metadata),
+                            'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
+                        }
+                    except Exception as e:
+                        st.warning(f"AI generation encountered an error: {str(e)}")
+                        generated_content = {
+                            'overview': llm_generator._get_fallback_overview(metadata),
+                            'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
+                        }
+
+                    # Step 3: Store results regardless of LLM success
+                    elapsed_time = time.time() - start_time
+
+                    session_manager.store_metadata(metadata)
+                    session_manager.store_generated_content(generated_content)
+                    session_manager.set_connected(True, conn_string)
+                    session_manager.set_introspection_time(elapsed_time)
+
+                    connection_key = f"{server}|{database}"
+                    existing_keys = [f"{conn['server']}|{conn['database']}" for conn in st.session_state.saved_connections]
+
+                    if connection_key not in existing_keys:
+                        saved_conn = {
+                            'server': server,
+                            'database': database,
+                            'auth_method': auth_method,
+                            'timeout': timeout
+                        }
+                        if auth_method == "SQL Server Authentication":
+                            saved_conn['username'] = username
+                        st.session_state.saved_connections.append(saved_conn)
+
+                    st.success(f"Successfully connected to **{metadata['database_name']}** on **{metadata['server']}**")
+                    st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
+                    time.sleep(1)
+                    st.rerun()
 
 # Footer
 st.divider()
