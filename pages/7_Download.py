@@ -25,7 +25,7 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import re
 
 # Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.image("assets/Belvenar_logo.png", width=80)
 st.sidebar.markdown("**Belvenar Analytics**")
 st.sidebar.divider()
 

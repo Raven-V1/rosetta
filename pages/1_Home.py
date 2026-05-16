@@ -12,12 +12,15 @@ from src import session_manager, db_inspector, llm_generator
 load_dotenv()
 
 # Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.image("assets/Belvenar_logo.png", width=80)
 st.sidebar.markdown("**Belvenar Analytics**")
 st.sidebar.divider()
 
-# Page title with IBM Carbon design tokens
-st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Rosetta</h1>", unsafe_allow_html=True)
+# Page header: logo row then title row
+col_logo, col_spacer = st.columns([1, 5])
+with col_logo:
+    st.image("assets/Belvenar_logo.png", width=72)
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;margin-top:0.5rem;'>Rosetta</h1>", unsafe_allow_html=True)
 st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>SQL Server Database Documentation Generator</p>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
@@ -53,10 +56,7 @@ else:
     st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Connect to Database</h2>", unsafe_allow_html=True)
     st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
 
-    # Initialize saved_connections in session_manager
-    session_manager._initialize_session_state()
-
-    # Try Demo button above tabs
+    # Try Demo button
     if st.button("🎯 Try Demo", type="secondary", use_container_width=True):
         demo_db_path = "demo_data.db"
         conn_string = f"sqlite:///{demo_db_path}"
@@ -350,243 +350,149 @@ else:
 
     st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["Saved Connections", "New Connection"])
+    st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>Enter your SQL Server connection details to begin.</p>", unsafe_allow_html=True)
 
-    with tab1:
-        if len(st.session_state.saved_connections) == 0:
-            st.info("No saved connections yet. Use the New Connection tab to create your first connection.")
+    with st.form("connection_form"):
+        server = st.text_input(
+            "Server",
+            value="localhost",
+            help="SQL Server hostname or IP address. Use localhost\\INSTANCENAME for named instances."
+        )
+
+        database = st.text_input(
+            "Database",
+            value="",
+            help="Database name to connect to"
+        )
+
+        auth_method = st.radio(
+            "Authentication Method",
+            options=["Windows Authentication", "SQL Server Authentication"],
+            help="Choose how to authenticate with SQL Server"
+        )
+
+        username = None
+        password = None
+        if auth_method == "SQL Server Authentication":
+            username = st.text_input("Username", placeholder="sa")
+            password = st.text_input("Password", type="password")
+
+        timeout = st.number_input(
+            "Connection Timeout (seconds)",
+            min_value=5,
+            max_value=120,
+            value=30
+        )
+
+        submitted = st.form_submit_button("Connect and Analyze", type="primary")
+
+    if submitted:
+        if not all([server, database]):
+            st.error("Server and Database fields are required")
+        elif auth_method == "SQL Server Authentication" and not all([username, password]):
+            st.error("Username and Password are required for SQL Server Authentication")
         else:
-            st.markdown("Select a saved connection to connect:")
-            st.markdown("")
-
-            for idx, saved_conn in enumerate(st.session_state.saved_connections):
-                col1, col2 = st.columns([3, 1])
-
-                with col1:
-                    display_name = f"{saved_conn['server']} - {saved_conn['database']}"
-                    st.markdown(f"**{display_name}**")
-                    auth_display = saved_conn['auth_method']
-                    if saved_conn['auth_method'] == "SQL Server Authentication":
-                        auth_display += f" (User: {saved_conn.get('username', 'N/A')})"
-                    st.caption(f"Auth: {auth_display} | Timeout: {saved_conn['timeout']}s")
-
-                with col2:
-                    if st.button("Connect", key=f"connect_saved_{idx}", type="primary"):
-                        server_val = saved_conn['server']
-                        database_val = saved_conn['database']
-                        auth_method_val = saved_conn['auth_method']
-                        timeout_val = saved_conn['timeout']
-
-                        if auth_method_val == "SQL Server Authentication":
-                            st.error("SQL Server Authentication connections require password re-entry. Please use the New Connection tab.")
-                            st.stop()
-
-                        conn_string = (
-                            f"Driver={{ODBC Driver 17 for SQL Server}};"
-                            f"Server={server_val};"
-                            f"Database={database_val};"
-                            f"Trusted_Connection=yes;"
-                            f"Connection Timeout={timeout_val};"
-                        )
-
-                        with st.spinner("Connecting and analyzing database..."):
-                            start_time = time.time()
-                            try:
-                                st.write("Extracting database metadata...")
-                                metadata = db_inspector.get_database_metadata(conn_string)
-
-                                st.write("Generating AI-powered documentation...")
-                                generated_content = llm_generator.generate_tier1_content(metadata)
-
-                                elapsed_time = time.time() - start_time
-
-                                session_manager.store_metadata(metadata)
-                                session_manager.store_generated_content(generated_content)
-                                session_manager.set_connected(True, conn_string)
-                                session_manager.set_introspection_time(elapsed_time)
-
-                                # Success messages with IBM Carbon design tokens
-                                st.markdown(f"""
-                                <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#42be65;font-weight:600;'>✓ Successfully connected to {metadata['database_name']}</span>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                
-                                st.markdown(f"""
-                                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#78a9ff;'>ℹ Analyzed {len(metadata['tables'])} tables in {elapsed_time:.2f} seconds</span>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                time.sleep(1)
-                                st.rerun()
-
-                            except ValueError as e:
-                                st.markdown(f"""
-                                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#ff8389;'>✗ AI generation failed: {str(e)}</span>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                st.markdown("""
-                                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#78a9ff;'>ℹ The database connected successfully but AI documentation could not be generated. Check your GROQ_API_KEY in Streamlit secrets.</span>
-                                </div>
-                                """, unsafe_allow_html=True)
-                            except Exception as e:
-                                st.markdown(f"""
-                                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                                    <span style='color:#ff8389;'>✗ Unexpected error: {str(e)}</span>
-                                </div>
-                                """, unsafe_allow_html=True)
-
-                st.divider()
-
-    with tab2:
-        st.markdown("Enter your SQL Server connection details to begin.")
-
-        with st.form("connection_form"):
-            server = st.text_input(
-                "Server",
-                value="localhost",
-                help="SQL Server hostname or IP address"
-            )
-
-            database = st.text_input(
-                "Database",
-                value="AdventureWorks2025",
-                help="Database name to connect to"
-            )
-
-            auth_method = st.radio(
-                "Authentication Method",
-                options=["Windows Authentication", "SQL Server Authentication"],
-                help="Choose how to authenticate with SQL Server"
-            )
-
-            username = None
-            password = None
-            if auth_method == "SQL Server Authentication":
-                username = st.text_input("Username", placeholder="sa")
-                password = st.text_input("Password", type="password")
-
-            timeout = st.number_input(
-                "Connection Timeout (seconds)",
-                min_value=5,
-                max_value=120,
-                value=30
-            )
-
-            submitted = st.form_submit_button("Connect and Analyze", type="primary")
-
-        if submitted:
-            if not all([server, database]):
-                st.error("Server and Database fields are required")
-            elif auth_method == "SQL Server Authentication" and not all([username, password]):
-                st.error("Username and Password are required for SQL Server Authentication")
+            if auth_method == "Windows Authentication":
+                conn_string = (
+                    f"Driver={{ODBC Driver 17 for SQL Server}};"
+                    f"Server={server};"
+                    f"Database={database};"
+                    f"Trusted_Connection=yes;"
+                    f"Connection Timeout={timeout};"
+                )
             else:
-                if auth_method == "Windows Authentication":
-                    conn_string = (
-                        f"Driver={{ODBC Driver 17 for SQL Server}};"
-                        f"Server={server};"
-                        f"Database={database};"
-                        f"Trusted_Connection=yes;"
-                        f"Connection Timeout={timeout};"
-                    )
-                else:
-                    conn_string = (
-                        f"Driver={{ODBC Driver 17 for SQL Server}};"
-                        f"Server={server};"
-                        f"Database={database};"
-                        f"UID={username};"
-                        f"PWD={password};"
-                        f"Connection Timeout={timeout};"
-                    )
+                conn_string = (
+                    f"Driver={{ODBC Driver 17 for SQL Server}};"
+                    f"Server={server};"
+                    f"Database={database};"
+                    f"UID={username};"
+                    f"PWD={password};"
+                    f"Connection Timeout={timeout};"
+                )
 
-                with st.spinner("Connecting and analyzing database..."):
-                    start_time = time.time()
+            with st.spinner("Connecting and analyzing database..."):
+                start_time = time.time()
 
-                    # Step 1: Test database connection first
-                    try:
-                        st.write("Extracting database metadata...")
-                        metadata = db_inspector.get_database_metadata(conn_string)
-                    except Exception as e:
-                        # Error message with IBM Carbon design tokens
-                        st.markdown(f"""
-                        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                            <span style='color:#ff8389;'>✗ Database connection failed: {str(e)}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'><strong>Troubleshooting tips:</strong></p>", unsafe_allow_html=True)
-                        st.markdown("<p style='font-size:0.875rem;color:#e0e0e0;'>- Verify server name and database name are correct<br>- Ensure SQL Server authentication is enabled<br>- Check username and password credentials<br>- Confirm network connectivity to the server<br>- Verify ODBC Driver 17 for SQL Server is installed</p>", unsafe_allow_html=True)
-                        st.stop()
-
-                    # Step 2: Generate LLM content separately
-                    try:
-                        st.write("Generating AI-powered documentation...")
-                        generated_content = llm_generator.generate_tier1_content(metadata)
-                    except ValueError as e:
-                        # Warning message with IBM Carbon design tokens
-                        st.markdown(f"""
-                        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                            <span style='color:#ff8389;'>⚠ AI generation failed: {str(e)}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
+                try:
+                    st.write("Extracting database metadata...")
+                    metadata = db_inspector.get_database_metadata(conn_string)
+                except Exception as e:
+                    err_str = str(e)
+                    st.markdown(f"""
+                    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#ff8389;'>✗ Database connection failed: {err_str}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if 'HYT00' in err_str or 'timeout' in err_str.lower():
                         st.markdown("""
                         <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                            <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your GROQ_API_KEY in Streamlit secrets.</span>
+                            <span style='color:#78a9ff;'><strong>Login timeout — common causes:</strong><br>
+                            - SQL Server service is not running (check Services or SQL Server Configuration Manager)<br>
+                            - TCP/IP protocol disabled: open SQL Server Configuration Manager &gt; SQL Server Network Configuration &gt; enable TCP/IP<br>
+                            - Named instance: use <code>localhost\\INSTANCENAME</code> (e.g. <code>localhost\\SQLEXPRESS</code>)<br>
+                            - Firewall blocking port 1433: try <code>localhost,1433</code> as the server name</span>
                         </div>
                         """, unsafe_allow_html=True)
-                        generated_content = {
-                            'overview': llm_generator._get_fallback_overview(metadata),
-                            'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
-                        }
-                    except Exception as e:
-                        # Warning message with IBM Carbon design tokens
-                        st.markdown(f"""
-                        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                            <span style='color:#ff8389;'>⚠ AI generation encountered an error: {str(e)}</span>
+                    else:
+                        st.markdown("""
+                        <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                            <span style='color:#78a9ff;'><strong>Troubleshooting tips:</strong><br>
+                            - Verify server name and database name are correct<br>
+                            - Ensure the authentication method matches your SQL Server config<br>
+                            - Confirm ODBC Driver 17 for SQL Server is installed</span>
                         </div>
                         """, unsafe_allow_html=True)
-                        generated_content = {
-                            'overview': llm_generator._get_fallback_overview(metadata),
-                            'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
-                        }
+                    st.stop()
 
-                    # Step 3: Store results regardless of LLM success
-                    elapsed_time = time.time() - start_time
-
-                    session_manager.store_metadata(metadata)
-                    session_manager.store_generated_content(generated_content)
-                    session_manager.set_connected(True, conn_string)
-                    session_manager.set_introspection_time(elapsed_time)
-
-                    connection_key = f"{server}|{database}"
-                    existing_keys = [f"{conn['server']}|{conn['database']}" for conn in st.session_state.saved_connections]
-
-                    if connection_key not in existing_keys:
-                        saved_conn = {
-                            'server': server,
-                            'database': database,
-                            'auth_method': auth_method,
-                            'timeout': timeout
-                        }
-                        if auth_method == "SQL Server Authentication":
-                            saved_conn['username'] = username
-                        st.session_state.saved_connections.append(saved_conn)
-
-                    # Success messages with IBM Carbon design tokens
+                try:
+                    st.write("Generating AI-powered documentation...")
+                    generated_content = llm_generator.generate_tier1_content(metadata)
+                except ValueError as e:
                     st.markdown(f"""
-                    <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                        <span style='color:#42be65;font-weight:600;'>✓ Successfully connected to {metadata['database_name']} on {metadata['server']}</span>
+                    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#ff8389;'>⚠ AI generation failed: {str(e)}</span>
                     </div>
                     """, unsafe_allow_html=True)
-                    
-                    st.markdown(f"""
+                    st.markdown("""
                     <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
-                        <span style='color:#78a9ff;'>ℹ Analyzed {len(metadata['tables'])} tables in {elapsed_time:.2f} seconds</span>
+                        <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your GROQ_API_KEY in Streamlit secrets.</span>
                     </div>
                     """, unsafe_allow_html=True)
-                    time.sleep(1)
-                    st.rerun()
+                    generated_content = {
+                        'overview': llm_generator._get_fallback_overview(metadata),
+                        'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
+                    }
+                except Exception as e:
+                    st.markdown(f"""
+                    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#ff8389;'>⚠ AI generation encountered an error: {str(e)}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    generated_content = {
+                        'overview': llm_generator._get_fallback_overview(metadata),
+                        'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
+                    }
+
+                elapsed_time = time.time() - start_time
+
+                session_manager.store_metadata(metadata)
+                session_manager.store_generated_content(generated_content)
+                session_manager.set_connected(True, conn_string)
+                session_manager.set_introspection_time(elapsed_time)
+
+                st.markdown(f"""
+                <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#42be65;font-weight:600;'>✓ Successfully connected to {metadata['database_name']} on {metadata['server']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#78a9ff;'>ℹ Analyzed {len(metadata['tables'])} tables in {elapsed_time:.2f} seconds</span>
+                </div>
+                """, unsafe_allow_html=True)
+                time.sleep(1)
+                st.rerun()
 
 # Footer
 st.divider()

@@ -18,7 +18,7 @@ from src import session_manager, llm_generator
 load_dotenv()
 
 # Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.image("assets/Belvenar_logo.png", width=80)
 st.sidebar.markdown("**Belvenar Analytics**")
 st.sidebar.divider()
 
