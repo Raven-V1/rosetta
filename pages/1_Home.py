@@ -16,11 +16,7 @@ st.sidebar.image("assets/Belvenar_logo.png", width=80)
 st.sidebar.markdown("**Belvenar Analytics**")
 st.sidebar.divider()
 
-# Page header: logo row then title row
-col_logo, col_spacer = st.columns([1, 5])
-with col_logo:
-    st.image("assets/Belvenar_logo.png", width=72)
-st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;margin-top:0.5rem;'>Rosetta</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Rosetta</h1>", unsafe_allow_html=True)
 st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>SQL Server Database Documentation Generator</p>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
