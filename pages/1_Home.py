@@ -388,10 +388,8 @@ else:
         elif auth_method == "SQL Server Authentication" and not all([username, password]):
             st.error("Username and Password are required for SQL Server Authentication")
         else:
-            # Use shared memory (lpc:) for local connections — matches how SSMS connects locally
             server_str = server.strip()
-            is_local = server_str.lower() in ('localhost', '.', '(local)') or server_str.lower().startswith('localhost\\') or server_str.startswith('.\\')
-            effective_server = f"lpc:{server_str}" if is_local else server_str
+            effective_server = server_str
 
             if auth_method == "Windows Authentication":
                 conn_string = (
