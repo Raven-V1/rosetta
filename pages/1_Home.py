@@ -390,8 +390,8 @@ else:
         else:
             server_str = server.strip()
             is_local = server_str.lower() in ('localhost', '.', '(local)')
-            # Named pipes avoids TCP/IP requirement for local connections
-            effective_server = f"np:{server_str}" if is_local else server_str
+            # pyodbc requires the UNC pipe path, not the np: prefix sqlcmd uses
+            effective_server = r"\\.\pipe\sql\query" if is_local else server_str
 
             if auth_method == "Windows Authentication":
                 conn_string = (

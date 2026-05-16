@@ -13,11 +13,17 @@ Responsibilities:
 All queries are read-only. No ORM used.
 """
 
-import pyodbc
 import sqlite3
 import pandas as pd
 from typing import Dict, List, Optional, Tuple
 import logging
+
+try:
+    import pyodbc
+    _PYODBC_ERROR = _PYODBC_ERROR
+except ImportError:
+    pyodbc = None
+    _PYODBC_ERROR = type("_NullPyodbcError", (Exception,), {})
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +63,8 @@ def validate_connection(conn_string: str) -> bool:
             return True
         else:
             # SQL Server connection
+            if pyodbc is None:
+                raise RuntimeError("pyodbc is not installed. SQL Server connections are not available in this environment.")
             conn = pyodbc.connect(conn_string)
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
@@ -65,7 +73,7 @@ def validate_connection(conn_string: str) -> bool:
             conn.close()
             logger.info("SQL Server connection validation successful")
             return True
-    except (pyodbc.Error, sqlite3.Error) as e:
+    except (_PYODBC_ERROR, sqlite3.Error) as e:
         logger.error(f"Connection validation failed: {e}")
         return False
     except Exception as e:
@@ -319,7 +327,7 @@ def get_database_metadata(conn_string: str) -> Dict:
         logger.info(f"Metadata extraction complete: {len(tables)} tables, {len(relationships)} relationships")
         return metadata
         
-    except pyodbc.Error as e:
+    except _PYODBC_ERROR as e:
         logger.error(f"Database error during metadata extraction: {e}")
         raise
     except Exception as e:
@@ -370,7 +378,7 @@ def get_table_row_counts(conn_string: str, tables: List[Dict[str, str]]) -> Dict
                 result = cursor.fetchone()
                 row_counts[table_key] = result.row_count if result and result.row_count else 0
                 
-            except pyodbc.Error as e:
+            except _PYODBC_ERROR as e:
                 logger.warning(f"Could not get row count for {table_key}: {e}")
                 row_counts[table_key] = 0
         
@@ -380,7 +388,7 @@ def get_table_row_counts(conn_string: str, tables: List[Dict[str, str]]) -> Dict
         logger.info(f"Row counts retrieved for {len(row_counts)} tables")
         return row_counts
         
-    except pyodbc.Error as e:
+    except _PYODBC_ERROR as e:
         logger.error(f"Database error during row count retrieval: {e}")
         return row_counts
     except Exception as e:
@@ -430,6 +438,8 @@ def get_sample_data(conn_string: str, table: str, limit: int = 5) -> pd.DataFram
             return df
         else:
             # SQL Server connection
+            if pyodbc is None:
+                raise RuntimeError("pyodbc is not installed. SQL Server connections are not available in this environment.")
             conn = pyodbc.connect(conn_string)
             
             # Validate table name format
@@ -447,7 +457,7 @@ def get_sample_data(conn_string: str, table: str, limit: int = 5) -> pd.DataFram
             logger.info(f"Retrieved {len(df)} rows from {table}")
             return df
         
-    except (pyodbc.Error, sqlite3.Error) as e:
+    except (_PYODBC_ERROR, sqlite3.Error) as e:
         logger.error(f"Database error retrieving sample data from {table}: {e}")
         raise
     except Exception as e:
@@ -476,6 +486,8 @@ def get_connection_info(conn_string: str) -> Optional[Tuple[str, str]]:
             return (database_name, server)
         else:
             # SQL Server connection
+            if pyodbc is None:
+                raise RuntimeError("pyodbc is not installed. SQL Server connections are not available in this environment.")
             conn = pyodbc.connect(conn_string)
             cursor = conn.cursor()
             cursor.execute("SELECT DB_NAME() AS database_name, @@SERVERNAME AS server")
