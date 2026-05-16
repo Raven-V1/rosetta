@@ -1,0 +1,45 @@
+# Streamlit Configuration for Rosetta Application
+# This file configures the Streamlit app's appearance and behavior
+
+[theme]
+# Primary theme color (used for interactive elements)
+primaryColor = "#FF4B4B"
+
+# Background color for the main content area
+backgroundColor = "#FFFFFF"
+
+# Background color for sidebar and most interactive widgets
+secondaryBackgroundColor = "#F0F2F6"
+
+# Color used for almost all text
+textColor = "#262730"
+
+# Font family for all text in the app
+# Options: "sans serif", "serif", or "monospace"
+font = "sans serif"
+
+[server]
+# Port where the app runs (default: 8501)
+port = 8501
+
+# Enables CORS protection
+enableCORS = false
+
+# Enables XSRF protection
+enableXsrfProtection = true
+
+# Max upload size in MB (default: 200)
+maxUploadSize = 200
+
+# Enable WebSocket compression
+enableWebsocketCompression = true
+
+[browser]
+# Automatically open browser on startup (useful for local development)
+gatherUsageStats = false
+
+# Server address (leave as default for Streamlit Cloud)
+serverAddress = "localhost"
+
+# Server port (leave as default for Streamlit Cloud)
+serverPort = 8501
