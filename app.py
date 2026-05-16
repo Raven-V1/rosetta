@@ -9,7 +9,11 @@ Responsibilities:
 """
 
 import streamlit as st
+from dotenv import load_dotenv
 from src import session_manager
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Page configuration
 st.set_page_config(

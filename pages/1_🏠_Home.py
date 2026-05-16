@@ -46,33 +46,17 @@ else:
     
     # Connection form
     with st.form("connection_form"):
-        col1, col2 = st.columns(2)
+        server = st.text_input(
+            "Server",
+            placeholder="localhost or server.domain.com",
+            help="SQL Server hostname or IP address"
+        )
         
-        with col1:
-            server = st.text_input(
-                "Server",
-                placeholder="localhost or server.domain.com",
-                help="SQL Server hostname or IP address"
-            )
-            
-            database = st.text_input(
-                "Database",
-                placeholder="AdventureWorks2025",
-                help="Database name to connect to"
-            )
-        
-        with col2:
-            username = st.text_input(
-                "Username",
-                placeholder="sa",
-                help="SQL Server authentication username"
-            )
-            
-            password = st.text_input(
-                "Password",
-                type="password",
-                help="SQL Server authentication password"
-            )
+        database = st.text_input(
+            "Database",
+            placeholder="AdventureWorks2025",
+            help="Database name to connect to"
+        )
         
         # Submit button
         submitted = st.form_submit_button("🔌 Connect and Analyze", type="primary")
@@ -80,16 +64,15 @@ else:
     # Process connection when form is submitted
     if submitted:
         # Validate inputs
-        if not all([server, database, username, password]):
-            st.error("❌ All fields are required")
+        if not all([server, database]):
+            st.error("❌ Server and Database fields are required")
         else:
-            # Build pyodbc connection string
+            # Build pyodbc connection string with Windows Authentication
             conn_string = (
                 f"Driver={{ODBC Driver 17 for SQL Server}};"
                 f"Server={server};"
                 f"Database={database};"
-                f"UID={username};"
-                f"PWD={password};"
+                f"Trusted_Connection=yes;"
             )
             
             # Show spinner during introspection

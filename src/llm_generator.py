@@ -45,6 +45,12 @@ def _get_iam_token() -> str:
     if _cached_iam_token:
         return _cached_iam_token
     
+    # Check if API key is configured
+    if not WATSONX_API_KEY:
+        error_msg = "WATSONX_API_KEY environment variable is not set. Please configure your IBM Cloud API key."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    
     # Obtain new token
     token_url = "https://iam.cloud.ibm.com/identity/token"
     headers = {
@@ -62,9 +68,19 @@ def _get_iam_token() -> str:
         _cached_iam_token = token_data["access_token"]
         logger.info("Successfully obtained IAM token")
         return _cached_iam_token
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 400:
+            error_msg = "Invalid IBM Cloud API key. Please check your WATSONX_API_KEY environment variable."
+        elif e.response.status_code == 401:
+            error_msg = "Unauthorized: IBM Cloud API key authentication failed. Please verify your credentials."
+        else:
+            error_msg = f"IBM Cloud IAM authentication failed with status {e.response.status_code}: {str(e)}"
+        logger.error(error_msg)
+        raise ValueError(error_msg) from e
     except Exception as e:
-        logger.error(f"Failed to obtain IAM token: {e}")
-        raise
+        error_msg = f"Failed to obtain IAM token: {str(e)}"
+        logger.error(error_msg)
+        raise ValueError(error_msg) from e
 
 
 def _generate_text(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
@@ -82,6 +98,12 @@ def _generate_text(prompt: str, max_tokens: int = 2000, temperature: float = 0.7
     Raises:
         Exception: If API call fails
     """
+    # Check if project ID is configured
+    if not WATSONX_PROJECT_ID:
+        error_msg = "WATSONX_PROJECT_ID environment variable is not set. Please configure your IBM watsonx project ID."
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    
     token = _get_iam_token()
     
     url = f"{WATSONX_URL}/ml/v1/text/generation?version=2023-05-29"
@@ -109,9 +131,25 @@ def _generate_text(prompt: str, max_tokens: int = 2000, temperature: float = 0.7
         result = response.json()
         generated_text = result["results"][0]["generated_text"]
         return generated_text
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            error_msg = "Unauthorized: watsonx.ai authentication failed. Your IAM token may have expired or is invalid."
+        elif e.response.status_code == 403:
+            error_msg = "Forbidden: Access denied to watsonx.ai. Please check your project ID and permissions."
+        elif e.response.status_code == 404:
+            error_msg = "Not found: Invalid watsonx.ai project ID or model. Please verify WATSONX_PROJECT_ID."
+        else:
+            error_msg = f"watsonx.ai API call failed with status {e.response.status_code}: {str(e)}"
+        logger.error(error_msg)
+        raise ValueError(error_msg) from e
+    except KeyError as e:
+        error_msg = f"Unexpected response format from watsonx.ai: {str(e)}"
+        logger.error(error_msg)
+        raise ValueError(error_msg) from e
     except Exception as e:
-        logger.error(f"watsonx.ai API call failed: {e}")
-        raise
+        error_msg = f"watsonx.ai API call failed: {str(e)}"
+        logger.error(error_msg)
+        raise ValueError(error_msg) from e
 
 
 def generate_overview(metadata: Dict) -> str:
@@ -123,6 +161,9 @@ def generate_overview(metadata: Dict) -> str:
         
     Returns:
         str: Overview paragraph describing the database purpose and structure
+        
+    Raises:
+        ValueError: If authentication or API configuration fails
         
     Example:
         >>> metadata = get_database_metadata(conn_string)
@@ -173,8 +214,13 @@ Be specific and professional. Do not use generic phrases like "appears to be" - 
         logger.info("Overview generation successful")
         return overview.strip()
         
+    except ValueError as e:
+        # Re-raise authentication and configuration errors
+        logger.error(f"Configuration/Authentication error in overview generation: {e}")
+        raise
     except Exception as e:
-        logger.error(f"watsonx.ai API error during overview generation: {e}")
+        logger.error(f"Unexpected error during overview generation: {e}")
+        logger.warning("Falling back to basic overview")
         return _get_fallback_overview(metadata)
 
 
@@ -187,6 +233,9 @@ def generate_table_descriptions(tables: List[Dict]) -> Dict[str, str]:
         
     Returns:
         dict: Mapping of 'schema.table' to description string
+        
+    Raises:
+        ValueError: If authentication or API configuration fails
         
     Example:
         >>> tables = metadata['tables']
@@ -265,9 +314,15 @@ Example format:
         
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error in table descriptions: {e}")
+        logger.warning("Falling back to basic table descriptions")
         return _get_fallback_descriptions(tables)
+    except ValueError as e:
+        # Re-raise authentication and configuration errors
+        logger.error(f"Configuration/Authentication error in table descriptions: {e}")
+        raise
     except Exception as e:
-        logger.error(f"Error during table description generation: {e}")
+        logger.error(f"Unexpected error during table description generation: {e}")
+        logger.warning("Falling back to basic table descriptions")
         return _get_fallback_descriptions(tables)
 
 
@@ -367,6 +422,9 @@ def generate_sample_queries(metadata: Dict) -> List[Dict]:
             - annotation: str - Explanation of what the query does and why it's useful
             - sql: str - The actual SQL query
             
+    Raises:
+        ValueError: If authentication or API configuration fails
+            
     Example:
         >>> metadata = get_database_metadata(conn_string)
         >>> queries = generate_sample_queries(metadata)
@@ -462,9 +520,15 @@ Make the queries realistic and useful for someone learning this database."""
         
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error in sample queries: {e}")
+        logger.warning("Falling back to basic sample queries")
         return _get_fallback_queries(metadata)
+    except ValueError as e:
+        # Re-raise authentication and configuration errors
+        logger.error(f"Configuration/Authentication error in sample queries: {e}")
+        raise
     except Exception as e:
-        logger.error(f"Error during sample query generation: {e}")
+        logger.error(f"Unexpected error during sample query generation: {e}")
+        logger.warning("Falling back to basic sample queries")
         return _get_fallback_queries(metadata)
 
 
@@ -482,6 +546,9 @@ def rank_important_tables(metadata: Dict) -> List[Dict]:
             - reasoning: str - Why this table is important
             - connections: int - Number of relationships this table has
             
+    Raises:
+        ValueError: If authentication or API configuration fails
+        
     Example:
         >>> metadata = get_database_metadata(conn_string)
         >>> important_tables = rank_important_tables(metadata)
@@ -591,9 +658,15 @@ Rank them from most important (1st) to 5th most important."""
         
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error in table rankings: {e}")
+        logger.warning("Falling back to basic table rankings")
         return _get_fallback_rankings(metadata)
+    except ValueError as e:
+        # Re-raise authentication and configuration errors to be handled by the UI
+        logger.error(f"Configuration/Authentication error in table ranking: {e}")
+        raise
     except Exception as e:
-        logger.error(f"Error during table ranking: {e}")
+        logger.error(f"Unexpected error during table ranking: {e}")
+        logger.warning("Falling back to basic table rankings")
         return _get_fallback_rankings(metadata)
 
 
