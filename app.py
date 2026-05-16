@@ -36,7 +36,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Belvenar logo in sidebar
-st.logo("assets/Belvenar_logo.png")
+st.logo("assets/Belvenar_logo.png", size="large")
 
 # Initialize session state
 session_manager._initialize_session_state()

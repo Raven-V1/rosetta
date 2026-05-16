@@ -1,7 +1,7 @@
 """
 LLM Generator Module
-Handles LLM-powered content generation using IBM watsonx.ai.
-Uses ibm/granite-4-h-small model via REST API.
+Handles LLM-powered content generation using Groq API.
+Uses llama-3.1-8b-instant model via REST API.
 """
 
 import os
@@ -9,103 +9,82 @@ import json
 import logging
 import requests
 from typing import Dict, List, Optional
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-MODEL_ID = "ibm/granite-4-h-small"
-WATSONX_URL = "https://us-south.ml.cloud.ibm.com"
-
-_cached_iam_token = None
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+MODEL_ID = "llama-3.1-8b-instant"
 
 
-def _get_iam_token() -> str:
-    global _cached_iam_token
-    _cached_iam_token = None  # Always get fresh token
-
-    api_key = os.getenv("WATSONX_API_KEY")
+def _generate_text(prompt: str, max_tokens: int = 1000, temperature: float = 0.3) -> str:
+    """
+    Generate text using Groq API.
+    
+    Args:
+        prompt: The prompt to send to the LLM
+        max_tokens: Maximum tokens to generate
+        temperature: Temperature for generation (0.0-1.0)
+        
+    Returns:
+        Generated text response
+        
+    Raises:
+        ValueError: If GROQ_API_KEY is not configured or API call fails
+    """
+    # Read API key fresh for each call
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("WATSONX_API_KEY environment variable is not set.")
-
-    token_url = "https://iam.cloud.ibm.com/identity/token"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    data = {
-        "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-        "apikey": api_key
-    }
-
-    try:
-        response = requests.post(token_url, headers=headers, data=data)
-        logger.info(f"IAM token response status: {response.status_code}")
-        logger.info(f"IAM token response: {response.text[:300]}")
-        response.raise_for_status()
-        _cached_iam_token = response.json()["access_token"]
-        logger.info("Successfully obtained IAM token")
-        return _cached_iam_token
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error getting token: {e.response.status_code} {e.response.text[:300]}")
-        if e.response.status_code == 400:
-            raise ValueError(f"IAM 400 error: {e.response.text[:300]}") from e
-        elif e.response.status_code == 401:
-            raise ValueError("Unauthorized: IBM Cloud API key authentication failed.") from e
-        else:
-            raise ValueError(f"IBM Cloud IAM authentication failed: {str(e)}") from e
-    except Exception as e:
-        raise ValueError(f"Failed to obtain IAM token: {str(e)}") from e
-
-
-def _generate_text(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
-    project_id = os.getenv("WATSONX_PROJECT_ID")
-    if not project_id:
-        raise ValueError("WATSONX_PROJECT_ID environment variable is not set.")
-
-    token = _get_iam_token()
-
-    url = f"{WATSONX_URL}/ml/v1/text/chat?version=2023-05-29"
+        raise ValueError("LLM features require GROQ_API_KEY to be configured")
+    
     headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
     }
-
+    
     payload = {
-        "model_id": MODEL_ID,
+        "model": MODEL_ID,
         "messages": [{"role": "user", "content": prompt}],
-        "parameters": {
-            "max_new_tokens": max_tokens,
-            "temperature": temperature,
-            "top_p": 1,
-            "top_k": 50
-        },
-        "project_id": project_id
+        "max_tokens": max_tokens,
+        "temperature": temperature
     }
-
+    
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        logger.info(f"Generation response status: {response.status_code}")
-        logger.info(f"Generation response: {response.text[:300]}")
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+        logger.info(f"Groq API response status: {response.status_code}")
         response.raise_for_status()
         result = response.json()
-        return result["results"][0]["generated_text"]
+        return result["choices"][0]["message"]["content"]
     except requests.exceptions.HTTPError as e:
         logger.error(f"HTTP error in generation: {e.response.status_code} {e.response.text[:300]}")
         if e.response.status_code == 401:
-            global _cached_iam_token
-            _cached_iam_token = None
-            raise ValueError("Unauthorized: watsonx.ai authentication failed.") from e
-        elif e.response.status_code == 403:
-            raise ValueError("Forbidden: Access denied to watsonx.ai.") from e
-        elif e.response.status_code == 404:
-            raise ValueError("Not found: Invalid project ID or model.") from e
+            raise ValueError("Unauthorized: Invalid GROQ_API_KEY") from e
+        elif e.response.status_code == 429:
+            raise ValueError("Rate limit exceeded. Please try again later.") from e
         else:
-            raise ValueError(f"watsonx.ai API call failed: {str(e)}") from e
+            raise ValueError(f"Groq API call failed: {str(e)}") from e
+    except requests.exceptions.Timeout:
+        raise ValueError("Request timed out. Please try again.") from None
     except KeyError as e:
-        raise ValueError(f"Unexpected response format from watsonx.ai: {str(e)}") from e
+        raise ValueError(f"Unexpected response format from Groq API: {str(e)}") from e
     except Exception as e:
-        raise ValueError(f"watsonx.ai API call failed: {str(e)}") from e
+        raise ValueError(f"Groq API call failed: {str(e)}") from e
 
 
 def generate_overview(metadata: Dict) -> str:
+    """
+    Generate a database overview using LLM.
+    
+    Args:
+        metadata: Database metadata dictionary
+        
+    Returns:
+        Overview text describing the database
+    """
     try:
         table_count = len(metadata.get('tables', []))
         relationship_count = len(metadata.get('relationships', []))
@@ -139,7 +118,7 @@ Write a concise 2-3 sentence overview paragraph that:
 
 Be specific and professional."""
 
-        overview = _generate_text(prompt=prompt, max_tokens=2000, temperature=0.7)
+        overview = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3)
         return overview.strip()
 
     except ValueError:
@@ -150,6 +129,15 @@ Be specific and professional."""
 
 
 def generate_table_descriptions(tables: List[Dict]) -> Dict[str, str]:
+    """
+    Generate descriptions for database tables using LLM.
+    
+    Args:
+        tables: List of table metadata dictionaries
+        
+    Returns:
+        Dictionary mapping table names to descriptions
+    """
     try:
         table_info = []
         for table in tables:
@@ -178,7 +166,7 @@ Tables:
 Return a JSON object where keys are full table names and values are descriptions.
 Example: {{"dbo.Users": "Stores user account credentials and profile information"}}"""
 
-        response_text = _generate_text(prompt=prompt, max_tokens=3000, temperature=0.7).strip()
+        response_text = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3).strip()
 
         if response_text.startswith('```'):
             lines = response_text.split('\n')
@@ -188,7 +176,8 @@ Example: {{"dbo.Users": "Stores user account credentials and profile information
                 if line.startswith('```'):
                     in_block = not in_block
                     continue
-                json_lines.append(line)
+                if in_block:
+                    json_lines.append(line)
             response_text = '\n'.join(json_lines)
 
         return json.loads(response_text)
@@ -203,6 +192,15 @@ Example: {{"dbo.Users": "Stores user account credentials and profile information
 
 
 def generate_tier1_content(metadata: Dict) -> Dict:
+    """
+    Generate Tier 1 content (overview and table descriptions).
+    
+    Args:
+        metadata: Database metadata dictionary
+        
+    Returns:
+        Dictionary with 'overview' and 'table_descriptions' keys
+    """
     logger.info("Starting Tier 1 content generation")
     overview = generate_overview(metadata)
     tables = metadata.get('tables', [])
@@ -214,6 +212,15 @@ def generate_tier1_content(metadata: Dict) -> Dict:
 
 
 def generate_sample_queries(metadata: Dict) -> List[Dict]:
+    """
+    Generate sample SQL queries for the database.
+    
+    Args:
+        metadata: Database metadata dictionary
+        
+    Returns:
+        List of query dictionaries with 'title', 'annotation', and 'sql' keys
+    """
     try:
         database_name = metadata.get('database_name', 'Unknown')
         tables = metadata.get('tables', [])
@@ -254,7 +261,7 @@ Include SELECT, JOIN, aggregation, and filtering queries.
 Return a JSON array:
 [{{"title": "...", "annotation": "...", "sql": "..."}}]"""
 
-        response_text = _generate_text(prompt=prompt, max_tokens=2000, temperature=0.7).strip()
+        response_text = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3).strip()
 
         if response_text.startswith('```'):
             lines = response_text.split('\n')
@@ -264,7 +271,8 @@ Return a JSON array:
                 if line.startswith('```'):
                     in_block = not in_block
                     continue
-                json_lines.append(line)
+                if in_block:
+                    json_lines.append(line)
             response_text = '\n'.join(json_lines)
 
         return json.loads(response_text)
@@ -279,6 +287,15 @@ Return a JSON array:
 
 
 def rank_important_tables(metadata: Dict) -> List[Dict]:
+    """
+    Rank and identify the most important tables in the database.
+    
+    Args:
+        metadata: Database metadata dictionary
+        
+    Returns:
+        List of top 5 important tables with descriptions and reasoning
+    """
     try:
         database_name = metadata.get('database_name', 'Unknown')
         tables = metadata.get('tables', [])
@@ -326,7 +343,7 @@ Tables sorted by relationships:
 Return a JSON array of exactly 5 objects:
 [{{"table": "schema.name", "description": "...", "reasoning": "...", "connections": 0}}]"""
 
-        response_text = _generate_text(prompt=prompt, max_tokens=1500, temperature=0.7).strip()
+        response_text = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3).strip()
 
         if response_text.startswith('```'):
             lines = response_text.split('\n')
@@ -336,7 +353,8 @@ Return a JSON array of exactly 5 objects:
                 if line.startswith('```'):
                     in_block = not in_block
                     continue
-                json_lines.append(line)
+                if in_block:
+                    json_lines.append(line)
             response_text = '\n'.join(json_lines)
 
         ranked_tables = json.loads(response_text)
@@ -352,6 +370,7 @@ Return a JSON array of exactly 5 objects:
 
 
 def _get_fallback_overview(metadata: Dict) -> str:
+    """Generate a basic fallback overview when LLM is unavailable."""
     database_name = metadata.get('database_name', 'Unknown Database')
     table_count = len(metadata.get('tables', []))
     relationship_count = len(metadata.get('relationships', []))
@@ -360,6 +379,7 @@ def _get_fallback_overview(metadata: Dict) -> str:
 
 
 def _get_fallback_descriptions(tables: List[Dict]) -> Dict[str, str]:
+    """Generate basic fallback descriptions when LLM is unavailable."""
     descriptions = {}
     for table in tables:
         schema = table.get('schema', 'dbo')
@@ -370,6 +390,7 @@ def _get_fallback_descriptions(tables: List[Dict]) -> Dict[str, str]:
 
 
 def _get_fallback_queries(metadata: Dict) -> List[Dict]:
+    """Generate basic fallback queries when LLM is unavailable."""
     tables = metadata.get('tables', [])
     queries = []
     for table in tables[:3]:
@@ -385,6 +406,7 @@ def _get_fallback_queries(metadata: Dict) -> List[Dict]:
 
 
 def _get_fallback_rankings(metadata: Dict) -> List[Dict]:
+    """Generate basic fallback rankings when LLM is unavailable."""
     tables = metadata.get('tables', [])
     relationships = metadata.get('relationships', [])
     connection_counts = {}

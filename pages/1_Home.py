@@ -5,13 +5,22 @@ Handles initial database connection and introspection.
 
 import streamlit as st
 import time
+from dotenv import load_dotenv
 from src import session_manager, db_inspector, llm_generator
 
-# Page title
-st.title("Rosetta")
-st.markdown("*SQL Server Database Documentation Generator*")
+# Load environment variables
+load_dotenv()
 
-st.divider()
+# Sidebar branding
+st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.markdown("**Belvenar Analytics**")
+st.sidebar.divider()
+
+# Page title with IBM Carbon design tokens
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Rosetta</h1>", unsafe_allow_html=True)
+st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>SQL Server Database Documentation Generator</p>", unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Check if already connected
 if session_manager.is_connected():
@@ -20,17 +29,29 @@ if session_manager.is_connected():
     server = metadata.get('server', 'Unknown')
     table_count = len(metadata.get('tables', []))
 
-    st.success(f"Connected to **{database_name}** on **{server}**")
-    st.info(f"Database contains **{table_count}** tables")
+    # Success status box with IBM Carbon design tokens
+    st.markdown(f"""
+    <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#42be65;font-weight:600;'>✓ Connected to {database_name} on {server}</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Info box with IBM Carbon design tokens
+    st.markdown(f"""
+    <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#78a9ff;'>ℹ Database contains {table_count} tables</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
     if st.button("Connect to Different Database", type="primary"):
         session_manager.clear_session()
         st.rerun()
 
 else:
-    st.header("Connect to Database")
+    st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Connect to Database</h2>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
 
     # Initialize saved_connections in session_manager
     session_manager._initialize_session_state()
@@ -281,14 +302,34 @@ else:
                 session_manager.set_connected(True, conn_string)
                 session_manager.set_introspection_time(elapsed_time)
                 
-                st.success(f"Successfully connected to demo database!")
-                st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
+                # Success message with IBM Carbon design tokens
+                st.markdown(f"""
+                <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#42be65;font-weight:600;'>✓ Successfully connected to demo database!</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(f"""
+                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#78a9ff;'>ℹ Analyzed {len(metadata['tables'])} tables in {elapsed_time:.2f} seconds</span>
+                </div>
+                """, unsafe_allow_html=True)
                 time.sleep(1)
                 st.rerun()
                 
             except ValueError as e:
-                st.warning(f"AI generation failed: {str(e)}")
-                st.info("Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.")
+                # Warning message with IBM Carbon design tokens
+                st.markdown(f"""
+                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#ff8389;'>⚠ AI generation failed: {str(e)}</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("""
+                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.</span>
+                </div>
+                """, unsafe_allow_html=True)
                 generated_content = {
                     'overview': llm_generator._get_fallback_overview(metadata),
                     'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
@@ -300,9 +341,14 @@ else:
                 session_manager.set_introspection_time(elapsed_time)
                 st.rerun()
             except Exception as e:
-                st.error(f"Demo connection failed: {str(e)}")
+                # Error message with IBM Carbon design tokens
+                st.markdown(f"""
+                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#ff8389;'>✗ Demo connection failed: {str(e)}</span>
+                </div>
+                """, unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Saved Connections", "New Connection"])
 
@@ -359,25 +405,47 @@ else:
                                 session_manager.set_connected(True, conn_string)
                                 session_manager.set_introspection_time(elapsed_time)
 
-                                st.success(f"Successfully connected to **{metadata['database_name']}**")
-                                st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
+                                # Success messages with IBM Carbon design tokens
+                                st.markdown(f"""
+                                <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                                    <span style='color:#42be65;font-weight:600;'>✓ Successfully connected to {metadata['database_name']}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                
+                                st.markdown(f"""
+                                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                                    <span style='color:#78a9ff;'>ℹ Analyzed {len(metadata['tables'])} tables in {elapsed_time:.2f} seconds</span>
+                                </div>
+                                """, unsafe_allow_html=True)
                                 time.sleep(1)
                                 st.rerun()
 
                             except pyodbc_error_types() as e:
-                                st.error(f"Database connection failed: {str(e)}")
-                                st.markdown("""
-                                **Troubleshooting tips:**
-                                - Verify server name and database name are correct
-                                - Ensure Windows Authentication is available
-                                - Confirm network connectivity to the server
-                                - Verify ODBC Driver 17 for SQL Server is installed
-                                """)
+                                # Error message with IBM Carbon design tokens
+                                st.markdown(f"""
+                                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                                    <span style='color:#ff8389;'>✗ Database connection failed: {str(e)}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'><strong>Troubleshooting tips:</strong></p>", unsafe_allow_html=True)
+                                st.markdown("<p style='font-size:0.875rem;color:#e0e0e0;'>- Verify server name and database name are correct<br>- Ensure Windows Authentication is available<br>- Confirm network connectivity to the server<br>- Verify ODBC Driver 17 for SQL Server is installed</p>", unsafe_allow_html=True)
                             except ValueError as e:
-                                st.error(f"AI generation failed: {str(e)}")
-                                st.info("The database connected successfully but AI documentation could not be generated. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.")
+                                st.markdown(f"""
+                                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                                    <span style='color:#ff8389;'>✗ AI generation failed: {str(e)}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                st.markdown("""
+                                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                                    <span style='color:#78a9ff;'>ℹ The database connected successfully but AI documentation could not be generated. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.</span>
+                                </div>
+                                """, unsafe_allow_html=True)
                             except Exception as e:
-                                st.error(f"Unexpected error: {str(e)}")
+                                st.markdown(f"""
+                                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                                    <span style='color:#ff8389;'>✗ Unexpected error: {str(e)}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
 
                 st.divider()
 
@@ -450,15 +518,14 @@ else:
                         st.write("Extracting database metadata...")
                         metadata = db_inspector.get_database_metadata(conn_string)
                     except Exception as e:
-                        st.error(f"Database connection failed: {str(e)}")
-                        st.markdown("""
-                        **Troubleshooting tips:**
-                        - Verify server name and database name are correct
-                        - Ensure SQL Server authentication is enabled
-                        - Check username and password credentials
-                        - Confirm network connectivity to the server
-                        - Verify ODBC Driver 17 for SQL Server is installed
-                        """)
+                        # Error message with IBM Carbon design tokens
+                        st.markdown(f"""
+                        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                            <span style='color:#ff8389;'>✗ Database connection failed: {str(e)}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'><strong>Troubleshooting tips:</strong></p>", unsafe_allow_html=True)
+                        st.markdown("<p style='font-size:0.875rem;color:#e0e0e0;'>- Verify server name and database name are correct<br>- Ensure SQL Server authentication is enabled<br>- Check username and password credentials<br>- Confirm network connectivity to the server<br>- Verify ODBC Driver 17 for SQL Server is installed</p>", unsafe_allow_html=True)
                         st.stop()
 
                     # Step 2: Generate LLM content separately
@@ -466,14 +533,28 @@ else:
                         st.write("Generating AI-powered documentation...")
                         generated_content = llm_generator.generate_tier1_content(metadata)
                     except ValueError as e:
-                        st.warning(f"AI generation failed: {str(e)}")
-                        st.info("Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.")
+                        # Warning message with IBM Carbon design tokens
+                        st.markdown(f"""
+                        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                            <span style='color:#ff8389;'>⚠ AI generation failed: {str(e)}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.markdown("""
+                        <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                            <span style='color:#78a9ff;'>ℹ Continuing with basic documentation. Check your WATSONX_API_KEY and WATSONX_PROJECT_ID environment variables.</span>
+                        </div>
+                        """, unsafe_allow_html=True)
                         generated_content = {
                             'overview': llm_generator._get_fallback_overview(metadata),
                             'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
                         }
                     except Exception as e:
-                        st.warning(f"AI generation encountered an error: {str(e)}")
+                        # Warning message with IBM Carbon design tokens
+                        st.markdown(f"""
+                        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                            <span style='color:#ff8389;'>⚠ AI generation encountered an error: {str(e)}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
                         generated_content = {
                             'overview': llm_generator._get_fallback_overview(metadata),
                             'table_descriptions': llm_generator._get_fallback_descriptions(metadata.get('tables', []))
@@ -501,8 +582,18 @@ else:
                             saved_conn['username'] = username
                         st.session_state.saved_connections.append(saved_conn)
 
-                    st.success(f"Successfully connected to **{metadata['database_name']}** on **{metadata['server']}**")
-                    st.info(f"Analyzed **{len(metadata['tables'])}** tables in **{elapsed_time:.2f}** seconds")
+                    # Success messages with IBM Carbon design tokens
+                    st.markdown(f"""
+                    <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#42be65;font-weight:600;'>✓ Successfully connected to {metadata['database_name']} on {metadata['server']}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown(f"""
+                    <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#78a9ff;'>ℹ Analyzed {len(metadata['tables'])} tables in {elapsed_time:.2f} seconds</span>
+                    </div>
+                    """, unsafe_allow_html=True)
                     time.sleep(1)
                     st.rerun()
 
@@ -510,6 +601,6 @@ else:
 st.divider()
 col1, col2 = st.columns([1, 11])
 with col1:
-    st.image("assets/bob_logo.png", width=30)
+    st.image("assets/bob_logo.png", width=50)
 with col2:
-    st.markdown("*Made with Bob*")
+    st.markdown("*Made with Bob*", unsafe_allow_html=True)

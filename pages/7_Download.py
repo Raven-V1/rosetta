@@ -24,12 +24,23 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import re
 
-# Page title
-st.title("Download")
+# Sidebar branding
+st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.markdown("**Belvenar Analytics**")
+st.sidebar.divider()
+
+# Page title with IBM Carbon design tokens
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Download</h1>", unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("No database connection found. Please connect to a database on the Home page.")
+    st.markdown("""
+    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#ff8389;'>⚠ No database connection found. Please connect to a database on the Home page.</span>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # Get metadata for database name
@@ -39,20 +50,21 @@ database_name = metadata.get('database_name', 'database')
 # Generate the markdown export
 markdown_content = markdown_exporter.export_to_markdown(st.session_state)
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Preview section with full scrollable content
-st.subheader("Preview")
-st.caption("Full markdown content (scrollable):")
+st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Preview</h2>", unsafe_allow_html=True)
+st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>Full markdown content (scrollable):</p>", unsafe_allow_html=True)
 
 # Display full markdown content using st.markdown with scrollable container
 with st.container(height=500):
     st.markdown(markdown_content)
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Stats section
-st.subheader("Export Statistics")
+st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Export Statistics</h2>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
 
 # Calculate word count
 word_count = len(markdown_content.split())
@@ -68,10 +80,11 @@ with col1:
 with col2:
     st.metric("Sections", section_count)
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Download button
-st.subheader("Download")
+st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Download</h2>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
 
 
 def generate_pdf(markdown_content: str, database_name: str) -> bytes:
@@ -247,14 +260,16 @@ st.download_button(
     use_container_width=True
 )
 
-st.info(f"The file will be saved as `{filename}`")
+st.markdown(f"""
+<div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+    <span style='color:#78a9ff;'>ℹ The file will be saved as {filename}</span>
+</div>
+""", unsafe_allow_html=True)
 
 # Footer
 st.divider()
 col1, col2 = st.columns([1, 11])
 with col1:
-    st.image("assets/bob_logo.png", width=30)
+    st.image("assets/bob_logo.png", width=50)
 with col2:
-    st.markdown("*Made with Bob*")
-
-# Made with Bob
+    st.markdown("*Made with Bob*", unsafe_allow_html=True)

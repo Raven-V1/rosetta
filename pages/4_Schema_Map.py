@@ -15,12 +15,23 @@ Responsibilities:
 import streamlit as st
 from src import session_manager
 
-# Page title
-st.title("Schema Map")
+# Sidebar branding
+st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.markdown("**Belvenar Analytics**")
+st.sidebar.divider()
+
+# Page title with IBM Carbon design tokens
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Schema Map</h1>", unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("No database connection found. Please connect to a database on the Home page.")
+    st.markdown("""
+    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#ff8389;'>⚠ No database connection found. Please connect to a database on the Home page.</span>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # Get data from session
@@ -32,15 +43,19 @@ relationships = metadata.get('relationships', [])
 database_name = metadata.get('database_name', 'Unknown')
 server = metadata.get('server', 'Unknown')
 
-st.header(f"{database_name}")
-st.caption(f"Server: {server}")
+st.markdown(f"<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>{database_name}</h2>", unsafe_allow_html=True)
+st.markdown(f"<p style='font-size:0.875rem;color:#c6c6c6;'>Server: {server}</p>", unsafe_allow_html=True)
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Check if there are tables to visualize
 if not tables:
-    st.info("No tables found in this database.")
-    st.divider()
+    st.markdown("""
+    <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#78a9ff;'>ℹ No tables found in this database.</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
     st.markdown("*Made with Bob*")
     st.stop()
 
@@ -48,8 +63,9 @@ if not tables:
 try:
     from streamlit_agraph import agraph, Node, Edge, Config
     
-    st.subheader("Database Schema Visualization")
-    st.markdown("Interactive graph showing tables and their relationships. Drag nodes to rearrange.")
+    st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Database Schema Visualization</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>Interactive graph showing tables and their relationships. Drag nodes to rearrange.</p>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
     
     # Extract all unique schemas from tables
     all_schemas = list(set(table.get('schema', 'Unknown') for table in tables))
@@ -154,12 +170,21 @@ try:
     try:
         agraph(nodes=nodes, edges=edges, config=config)
     except Exception as graph_error:
-        st.warning(f"Graph visualization failed: {str(graph_error)}")
-        st.info("Displaying relationships in table format instead.")
+        st.markdown(f"""
+        <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+            <span style='color:#ff8389;'>⚠ Graph visualization failed: {str(graph_error)}</span>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+            <span style='color:#78a9ff;'>ℹ Displaying relationships in table format instead.</span>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Fallback: Display relationships as a table
         if relationships:
-            st.subheader("Foreign Key Relationships")
+            st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Foreign Key Relationships</h2>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
             
             # Prepare data for display
             rel_data = []
@@ -174,12 +199,17 @@ try:
             
             st.dataframe(rel_data, use_container_width=True)
         else:
-            st.info("No relationships found in this database.")
+            st.markdown("""
+            <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                <span style='color:#78a9ff;'>ℹ No relationships found in this database.</span>
+            </div>
+            """, unsafe_allow_html=True)
     
-    st.divider()
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
     
     # Display legend for schema colors
-    st.subheader("Schema Legend")
+    st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Schema Legend</h2>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
     
     # Create columns for legend (max 4 per row)
     num_schemas = len(schemas)
@@ -214,20 +244,21 @@ try:
 
 except ImportError:
     # streamlit-agraph not installed
-    st.error("Graph visualization requires the `streamlit-agraph` package.")
     st.markdown("""
-    To install it, run:
-    ```bash
-    pip install streamlit-agraph
-    ```
-    """)
+    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#ff8389;'>✗ Graph visualization requires the streamlit-agraph package.</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>To install it, run:</p>", unsafe_allow_html=True)
+    st.code("pip install streamlit-agraph", language="bash")
     
-    st.divider()
+    st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
     
     # Fallback: Display relationships as a table
     if relationships:
-        st.subheader("Foreign Key Relationships")
-        st.markdown("*Install streamlit-agraph to see the interactive graph visualization.*")
+        st.markdown("<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>Foreign Key Relationships</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>Install streamlit-agraph to see the interactive graph visualization.</p>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
         
         # Prepare data for display
         rel_data = []
@@ -242,12 +273,16 @@ except ImportError:
         
         st.dataframe(rel_data, use_container_width=True)
     else:
-        st.info("No relationships found in this database.")
+        st.markdown("""
+        <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+            <span style='color:#78a9ff;'>ℹ No relationships found in this database.</span>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Footer
 st.divider()
 col1, col2 = st.columns([1, 11])
 with col1:
-    st.image("assets/bob_logo.png", width=30)
+    st.image("assets/bob_logo.png", width=50)
 with col2:
-    st.markdown("*Made with Bob*")
+    st.markdown("*Made with Bob*", unsafe_allow_html=True)

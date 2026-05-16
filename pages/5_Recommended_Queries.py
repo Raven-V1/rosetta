@@ -11,14 +11,29 @@ Responsibilities:
 """
 
 import streamlit as st
+from dotenv import load_dotenv
 from src import session_manager, llm_generator, query_executor
 
-# Page title
-st.title("Recommended Queries")
+# Load environment variables
+load_dotenv()
+
+# Sidebar branding
+st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.markdown("**Belvenar Analytics**")
+st.sidebar.divider()
+
+# Page title with IBM Carbon design tokens
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Recommended Queries</h1>", unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("No database connection found. Please connect to a database on the Home page.")
+    st.markdown("""
+    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#ff8389;'>⚠ No database connection found. Please connect to a database on the Home page.</span>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # Get data from session
@@ -29,10 +44,10 @@ generated = session_manager.get_generated_content()
 database_name = metadata.get('database_name', 'Unknown')
 server = metadata.get('server', 'Unknown')
 
-st.header(f"{database_name}")
-st.caption(f"Server: {server}")
+st.markdown(f"<h2 style='font-size:1.5rem;font-weight:600;color:#f4f4f4;'>{database_name}</h2>", unsafe_allow_html=True)
+st.markdown(f"<p style='font-size:0.875rem;color:#c6c6c6;'>Server: {server}</p>", unsafe_allow_html=True)
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Check if sample queries exist, generate if not
 sample_queries = generated.get('sample_queries', [])
@@ -48,18 +63,23 @@ if not sample_queries:
                 'sample_queries': sample_queries
             })
             
-            st.success(f"Generated {len(sample_queries)} sample queries")
+            st.markdown(f"""
+            <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                <span style='color:#42be65;font-weight:600;'>✓ Generated {len(sample_queries)} sample queries</span>
+            </div>
+            """, unsafe_allow_html=True)
         except Exception as e:
-            st.error(f"Failed to generate sample queries: {str(e)}")
+            st.markdown(f"""
+            <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                <span style='color:#ff8389;'>✗ Failed to generate sample queries: {str(e)}</span>
+            </div>
+            """, unsafe_allow_html=True)
             st.stop()
 
 # Display introduction
-st.markdown("""
-These sample queries demonstrate common patterns and operations in this database.
-Click **Run Query** to execute any query and see the results.
-""")
+st.markdown("<p style='font-size:0.875rem;color:#e0e0e0;'>These sample queries demonstrate common patterns and operations in this database. Click <strong>Run Query</strong> to execute any query and see the results.</p>", unsafe_allow_html=True)
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Display each query
 for idx, query in enumerate(sample_queries):
@@ -68,12 +88,12 @@ for idx, query in enumerate(sample_queries):
     annotation = query.get('annotation', '')
     sql = query.get('sql', '')
     
-    # Display query number and title
-    st.subheader(f"{idx + 1}. {title}")
+    # Display query number and title with IBM Carbon design tokens
+    st.markdown(f"<h3 style='font-size:1.25rem;font-weight:600;color:#f4f4f4;'>{idx + 1}. {title}</h3>", unsafe_allow_html=True)
     
     # Display annotation (explanation)
     if annotation:
-        st.markdown(annotation)
+        st.markdown(f"<p style='font-size:0.875rem;color:#e0e0e0;'>{annotation}</p>", unsafe_allow_html=True)
     
     # Display SQL in code block
     st.code(sql, language='sql')
@@ -90,10 +110,18 @@ for idx, query in enumerate(sample_queries):
                 
                 # Check if results are empty
                 if df.empty:
-                    st.warning("Query executed successfully but returned no results.")
+                    st.markdown("""
+                    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#ff8389;'>⚠ Query executed successfully but returned no results.</span>
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
                     # Show success message with row count
-                    st.success(f"Query executed successfully! Retrieved {len(df)} rows.")
+                    st.markdown(f"""
+                    <div style='background:#044317;border:1px solid #24a148;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                        <span style='color:#42be65;font-weight:600;'>✓ Query executed successfully! Retrieved {len(df)} rows.</span>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     # Display results
                     st.dataframe(df, use_container_width=True)
@@ -109,20 +137,28 @@ for idx, query in enumerate(sample_queries):
                     )
                     
             except ValueError as e:
-                # Handle validation errors
-                st.error(f"Invalid query: {str(e)}")
+                # Handle validation errors with IBM Carbon design tokens
+                st.markdown(f"""
+                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#ff8389;'>✗ Invalid query: {str(e)}</span>
+                </div>
+                """, unsafe_allow_html=True)
             except Exception as e:
-                # Handle other errors
-                st.error(f"Query execution failed: {str(e)}")
+                # Handle other errors with IBM Carbon design tokens
+                st.markdown(f"""
+                <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#ff8389;'>✗ Query execution failed: {str(e)}</span>
+                </div>
+                """, unsafe_allow_html=True)
     
-    # Add divider between queries (except after last one)
+    # Add spacing between queries (except after last one)
     if idx < len(sample_queries) - 1:
-        st.divider()
+        st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Footer
 st.divider()
 col1, col2 = st.columns([1, 11])
 with col1:
-    st.image("assets/bob_logo.png", width=30)
+    st.image("assets/bob_logo.png", width=50)
 with col2:
-    st.markdown("*Made with Bob*")
+    st.markdown("*Made with Bob*", unsafe_allow_html=True)

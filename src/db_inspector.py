@@ -1,12 +1,12 @@
 """
 Database Inspector Module
-Handles SQL Server database introspection using pyodbc.
+Handles database introspection for SQL Server (via pyodbc) and SQLite (via sqlite3).
 
 Responsibilities:
-- Validate SQL Server connections
-- Extract table metadata from INFORMATION_SCHEMA
-- Extract column metadata from INFORMATION_SCHEMA
-- Extract foreign key relationships from sys tables
+- Validate database connections (SQL Server and SQLite)
+- Extract table metadata from INFORMATION_SCHEMA (SQL Server) or sqlite_master (SQLite)
+- Extract column metadata from INFORMATION_SCHEMA (SQL Server) or PRAGMA (SQLite)
+- Extract foreign key relationships from sys tables (SQL Server) or PRAGMA (SQLite)
 - Get row counts per table
 - Get sample data for tables
 
@@ -26,10 +26,11 @@ logger = logging.getLogger(__name__)
 
 def validate_connection(conn_string: str) -> bool:
     """
-    Validate SQL Server connection using pyodbc.
+    Validate database connection.
+    Supports both SQL Server (via pyodbc) and SQLite (via sqlite3).
     
     Args:
-        conn_string: ODBC connection string with SQL Server Authentication
+        conn_string: ODBC connection string or SQLite connection string (sqlite:///path)
         
     Returns:
         bool: True if connection successful, False otherwise
@@ -38,19 +39,33 @@ def validate_connection(conn_string: str) -> bool:
         >>> conn_str = "Driver={ODBC Driver 17 for SQL Server};Server=localhost;Database=AdventureWorks2025;UID=sa;PWD=password"
         >>> validate_connection(conn_str)
         True
+        >>> conn_str = "sqlite:///demo_data.db"
+        >>> validate_connection(conn_str)
+        True
     """
     try:
-        # Note: timeout parameter in pyodbc.connect() is for login timeout only
-        # Connection timeout should be specified in the connection string
-        conn = pyodbc.connect(conn_string)
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1")
-        cursor.fetchone()
-        cursor.close()
-        conn.close()
-        logger.info("Connection validation successful")
-        return True
-    except pyodbc.Error as e:
+        # Check if this is a SQLite connection
+        if conn_string.startswith('sqlite:///'):
+            db_path = conn_string.replace('sqlite:///', '')
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+            cursor.close()
+            conn.close()
+            logger.info("SQLite connection validation successful")
+            return True
+        else:
+            # SQL Server connection
+            conn = pyodbc.connect(conn_string)
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+            cursor.close()
+            conn.close()
+            logger.info("SQL Server connection validation successful")
+            return True
+    except (pyodbc.Error, sqlite3.Error) as e:
         logger.error(f"Connection validation failed: {e}")
         return False
     except Exception as e:
@@ -376,10 +391,11 @@ def get_table_row_counts(conn_string: str, tables: List[Dict[str, str]]) -> Dict
 def get_sample_data(conn_string: str, table: str, limit: int = 5) -> pd.DataFrame:
     """
     Get sample data from a table.
+    Supports both SQL Server (via pyodbc) and SQLite (via sqlite3).
     
     Args:
-        conn_string: ODBC connection string
-        table: Fully qualified table name (schema.table)
+        conn_string: ODBC connection string or SQLite connection string (sqlite:///path)
+        table: Fully qualified table name (schema.table) or just table name for SQLite
         limit: Number of rows to retrieve (default: 5)
         
     Returns:
@@ -389,27 +405,49 @@ def get_sample_data(conn_string: str, table: str, limit: int = 5) -> pd.DataFram
         >>> df = get_sample_data(conn_str, 'dbo.Users', limit=5)
         >>> len(df)
         5
+        >>> df = get_sample_data('sqlite:///demo_data.db', 'main.customers', limit=5)
+        >>> len(df)
+        5
     """
     try:
-        # Connection timeout is specified in the connection string
-        conn = pyodbc.connect(conn_string)
+        # Check if this is a SQLite connection
+        if conn_string.startswith('sqlite:///'):
+            db_path = conn_string.replace('sqlite:///', '')
+            conn = sqlite3.connect(db_path)
+            
+            # For SQLite, extract just the table name (remove schema prefix if present)
+            table_name = table.split('.')[-1] if '.' in table else table
+            
+            # Use LIMIT for SQLite
+            query = f"SELECT * FROM {table_name} LIMIT {int(limit)}"
+            
+            logger.info(f"Retrieving {limit} sample rows from {table_name}")
+            df = pd.read_sql(query, conn)
+            
+            conn.close()
+            
+            logger.info(f"Retrieved {len(df)} rows from {table_name}")
+            return df
+        else:
+            # SQL Server connection
+            conn = pyodbc.connect(conn_string)
+            
+            # Validate table name format
+            if '.' not in table:
+                raise ValueError(f"Table name must be fully qualified (schema.table): {table}")
+            
+            # Use TOP for SQL Server
+            query = f"SELECT TOP {int(limit)} * FROM {table}"
+            
+            logger.info(f"Retrieving {limit} sample rows from {table}")
+            df = pd.read_sql(query, conn)
+            
+            conn.close()
+            
+            logger.info(f"Retrieved {len(df)} rows from {table}")
+            return df
         
-        # Validate table name format
-        if '.' not in table:
-            raise ValueError(f"Table name must be fully qualified (schema.table): {table}")
-        
-        # Use parameterized query with TOP for safety
-        query = f"SELECT TOP {int(limit)} * FROM {table}"
-        
-        logger.info(f"Retrieving {limit} sample rows from {table}")
-        df = pd.read_sql(query, conn)
-        
-        conn.close()
-        
-        logger.info(f"Retrieved {len(df)} rows from {table}")
-        return df
-        
-    except pyodbc.Error as e:
+    except (pyodbc.Error, sqlite3.Error) as e:
         logger.error(f"Database error retrieving sample data from {table}: {e}")
         raise
     except Exception as e:
@@ -421,22 +459,30 @@ def get_connection_info(conn_string: str) -> Optional[Tuple[str, str]]:
     """
     Extract database name and server from connection string.
     Helper function for displaying connection info.
+    Supports both SQL Server (via pyodbc) and SQLite (via sqlite3).
     
     Args:
-        conn_string: ODBC connection string
+        conn_string: ODBC connection string or SQLite connection string (sqlite:///path)
         
     Returns:
         tuple: (database_name, server) or None if connection fails
     """
     try:
-        # Connection timeout is specified in the connection string
-        conn = pyodbc.connect(conn_string)
-        cursor = conn.cursor()
-        cursor.execute("SELECT DB_NAME() AS database_name, @@SERVERNAME AS server")
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return (result.database_name, result.server)
+        # Check if this is a SQLite connection
+        if conn_string.startswith('sqlite:///'):
+            db_path = conn_string.replace('sqlite:///', '')
+            database_name = db_path.split('/')[-1].replace('.db', '')
+            server = 'SQLite'
+            return (database_name, server)
+        else:
+            # SQL Server connection
+            conn = pyodbc.connect(conn_string)
+            cursor = conn.cursor()
+            cursor.execute("SELECT DB_NAME() AS database_name, @@SERVERNAME AS server")
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            return (result.database_name, result.server)
     except Exception as e:
         logger.error(f"Could not extract connection info: {e}")
         return None

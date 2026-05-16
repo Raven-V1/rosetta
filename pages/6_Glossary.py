@@ -14,12 +14,23 @@ Responsibilities:
 import streamlit as st
 from src import session_manager
 
-# Page title
-st.title("Glossary")
+# Sidebar branding
+st.sidebar.image("assets/Belvenar_logo.png", width=160)
+st.sidebar.markdown("**Belvenar Analytics**")
+st.sidebar.divider()
+
+# Page title with IBM Carbon design tokens
+st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Glossary</h1>", unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Connection guard
 if not session_manager.is_connected():
-    st.warning("No database connection found. Please connect to a database on the Home page.")
+    st.markdown("""
+    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#ff8389;'>⚠ No database connection found. Please connect to a database on the Home page.</span>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # Get data from session
@@ -32,7 +43,7 @@ table_descriptions = generated.get('table_descriptions', {})
 # Get unique schemas for filter
 schemas = sorted(list(set(table.get('schema', 'Unknown') for table in tables)))
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Filters row
 col1, col2 = st.columns([2, 1])
@@ -54,7 +65,7 @@ with col2:
         label_visibility="collapsed"
     )
 
-st.divider()
+st.markdown("<div style='margin-top:2rem'></div>", unsafe_allow_html=True)
 
 # Filter tables based on search and schema
 filtered_tables = tables
@@ -72,7 +83,7 @@ if search_query:
     ]
 
 # Display results count
-st.caption(f"Showing {len(filtered_tables)} of {len(tables)} tables")
+st.markdown(f"<p style='font-size:0.875rem;color:#c6c6c6;'>Showing {len(filtered_tables)} of {len(tables)} tables</p>", unsafe_allow_html=True)
 
 # Display filtered tables
 if filtered_tables:
@@ -86,16 +97,16 @@ if filtered_tables:
         table_key = f"{schema}.{name}"
         description = table_descriptions.get(table_key, "No description available.")
         
-        # Create expander for each table
+        # Create expander for each table with IBM Carbon design tokens
         with st.expander(f"**{schema}.{name}** ({row_count:,} rows)"):
             # Show description
-            st.markdown(f"*{description}*")
+            st.markdown(f"<p style='font-size:0.875rem;color:#c6c6c6;font-style:italic;'>{description}</p>", unsafe_allow_html=True)
             
-            st.divider()
+            st.markdown("<div style='margin-top:1rem'></div>", unsafe_allow_html=True)
             
             # Show columns in a clean format
             if columns:
-                st.markdown("**Columns:**")
+                st.markdown("<p style='font-size:0.875rem;color:#f4f4f4;font-weight:600;'>Columns:</p>", unsafe_allow_html=True)
                 
                 # Create a table-like display
                 for col in columns:
@@ -111,33 +122,47 @@ if filtered_tables:
                     st.markdown(
                         f"""
                         <div style="
-                            padding: 8px;
-                            margin: 4px 0;
-                            background-color: #262626;
-                            border-radius: 5px;
+                            padding: 0.75rem;
+                            margin: 0.25rem 0;
+                            background-color: #161616;
+                            border: 1px solid #393939;
+                            border-radius: 4px;
                             display: flex;
                             justify-content: space-between;
+                            align-items: center;
                         ">
-                            <span style="color: #FFFFFF;"><strong>{col_name}</strong></span>
-                            <span style="color: #AAAAAA;">{col_type}</span>
-                            <span style="color: {nullable_color}; font-size: 0.85em;">{nullable_indicator}</span>
+                            <span style="color: #f4f4f4; flex: 1;"><strong>{col_name}</strong></span>
+                            <span style="color: #c6c6c6; flex: 1; text-align: center;">{col_type}</span>
+                            <span style="color: {nullable_color}; font-size: 0.875rem; flex: 0 0 80px; text-align: right;">{nullable_indicator}</span>
                         </div>
                         """,
                         unsafe_allow_html=True
                     )
             else:
-                st.info("No column information available.")
+                st.markdown("""
+                <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+                    <span style='color:#78a9ff;'>ℹ No column information available.</span>
+                </div>
+                """, unsafe_allow_html=True)
 else:
-    # No results found
+    # No results found with IBM Carbon design tokens
     if search_query or selected_schema != "All Schemas":
-        st.info("No tables match your search criteria. Try adjusting your filters.")
+        st.markdown("""
+        <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+            <span style='color:#78a9ff;'>ℹ No tables match your search criteria. Try adjusting your filters.</span>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.info("No tables found in this database.")
+        st.markdown("""
+        <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
+            <span style='color:#78a9ff;'>ℹ No tables found in this database.</span>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Footer
 st.divider()
 col1, col2 = st.columns([1, 11])
 with col1:
-    st.image("assets/bob_logo.png", width=30)
+    st.image("assets/bob_logo.png", width=50)
 with col2:
-    st.markdown("*Made with Bob*")
+    st.markdown("*Made with Bob*", unsafe_allow_html=True)
