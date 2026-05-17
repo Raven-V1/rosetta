@@ -1,0 +1,10 @@
+{
+  "session_id": "ibm_bob_05_home_app",
+  "tool": "IBM Bob Hackathon",
+  "date": "2026-05-15",
+  "location": "C:\\Users\\carlo\\Desktop",
+  "cost_bobcoin": 0.30,
+  "tags": ["build", "frontend", "pages"],
+  "prompt": "Build app.py and pages/1_🏠_Home.py for the Rosetta project.\n\napp.py responsibilities:\n- Minimal entry point\n- Initialize session state via session_manager.initialize_session()\n- Redirect to Home page\n- Set page config: title \"Rosetta\", icon \"🌿\", layout \"wide\"\n\npages/1_🏠_Home.py responsibilities:\n- Hero section with title and one-line description\n- Connection form: server input, database input, username input, password input (masked)\n- Builds pyodbc connection string from inputs\n- Connect button triggers db_inspector.get_database_metadata() then llm_generator.generate_tier1_content()\n- Shows spinner during introspection with elapsed time\n- On success: stores via session_manager, shows success message, lists table count\n- On failure: shows error message, stays on page\n- If already connected: shows current database name and Reconnect button\n\nImport from src modules only. No logic in pages, only UI.",
+  "outputs": ["app.py", "pages/1_🏠_Home.py"]
+}

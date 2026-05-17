@@ -1,0 +1,10 @@
+{
+  "session_id": "ibm_bob_02_session_manager",
+  "tool": "IBM Bob Hackathon",
+  "date": "2026-05-15",
+  "location": "C:\\Users\\carlo\\Desktop",
+  "cost_bobcoin": 0.06,
+  "tags": ["build", "backend", "state"],
+  "prompt": "Build src/session_manager.py for the Rosetta project.\n\nResponsibilities:\n- Initialize all session state keys on first load\n- store_metadata(metadata: dict) -> None\n- get_metadata() -> dict\n- store_generated_content(content: dict) -> None\n- get_generated_content() -> dict\n- is_connected() -> bool\n- clear_session() -> None\n\nSession state schema is in docs/quick_reference.md.\nUse only streamlit.session_state. No external dependencies.",
+  "outputs": ["src/session_manager.py"]
+}

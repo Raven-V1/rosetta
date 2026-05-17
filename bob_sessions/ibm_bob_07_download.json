@@ -1,0 +1,10 @@
+{
+  "session_id": "ibm_bob_07_download",
+  "tool": "IBM Bob Hackathon",
+  "date": "2026-05-15",
+  "location": "C:\\Users\\carlo\\Desktop",
+  "cost_bobcoin": 0.07,
+  "tags": ["build", "frontend", "pages", "export"],
+  "prompt": "Build pages/7_⬇️_Download.py for the Rosetta project.\n\nResponsibilities:\n- Guard: if not session_manager.is_connected(), show warning and stop\n- Preview section: show first 500 characters of the markdown export\n- Download button: st.download_button with the full markdown string\n  filename: {database_name}_onboarding.md\n  mime: text/markdown\n- Stats section: show word count and section count of the export\n- Calls markdown_exporter.export_to_markdown(st.session_state)\n- No business logic, reads only from session_manager\n\nImport from src modules only.",
+  "outputs": ["pages/7_⬇️_Download.py"]
+}

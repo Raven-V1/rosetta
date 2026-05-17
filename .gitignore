@@ -217,6 +217,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Editor sessions
-bob_sessions/
+# Editor sessions (VS Code Copilot only — IBM Bob sessions are tracked)
+bob_sessions/*.json.local
 

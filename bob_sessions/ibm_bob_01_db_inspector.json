@@ -1,0 +1,10 @@
+{
+  "session_id": "ibm_bob_01_db_inspector",
+  "tool": "IBM Bob Hackathon",
+  "date": "2026-05-15",
+  "location": "C:\\Users\\carlo\\Desktop",
+  "cost_bobcoin": 0.30,
+  "tags": ["build", "backend", "database"],
+  "prompt": "Build src/db_inspector.py for the Rosetta project.\n\nResponsibilities:\n- Validate SQL Server connections using pyodbc with SQL Server Authentication\n- Extract table metadata from INFORMATION_SCHEMA.TABLES\n- Extract column metadata from INFORMATION_SCHEMA.COLUMNS\n- Extract foreign key relationships from sys.foreign_keys and sys.foreign_key_columns\n- Get row counts per table\n- Get sample data (first 5 rows) for any table\n\nKey functions to implement:\n- validate_connection(conn_string: str) -> bool\n- get_database_metadata(conn_string: str) -> dict\n- get_table_row_counts(conn_string: str, tables: list) -> dict\n- get_sample_data(conn_string: str, table: str, limit: int) -> pd.DataFrame\n\nReturn schema matches the session state spec in docs/quick_reference.md.\nUse pyodbc. No ORM. Read-only queries only. Handle connection errors gracefully.",
+  "outputs": ["src/db_inspector.py"]
+}

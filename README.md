@@ -183,7 +183,6 @@ If `GROQ_API_KEY` is not set, the app falls back to static descriptions and prev
 | Carlos Velazquez (Belvenar Analytics) | Project lead, product design, architecture |
 | IBM Bob | Primary AI pair programmer — architecture decisions, code generation, debugging throughout the build |
 | Claude Code (Anthropic) | Secondary AI pair programmer — refactoring, bug fixes, PDF generation, LLM prompt engineering |
-
 This project was built during the IBM Bob Hackathon (May 15-17, 2026) using IBM Bob as the primary development tool.
 
 ---

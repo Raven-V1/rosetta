@@ -1,0 +1,10 @@
+{
+  "session_id": "ibm_bob_04_markdown_exporter",
+  "tool": "IBM Bob Hackathon",
+  "date": "2026-05-15",
+  "location": "C:\\Users\\carlo\\Desktop",
+  "cost_bobcoin": 0.27,
+  "tags": ["build", "export", "markdown"],
+  "prompt": "Build src/markdown_exporter.py for the Rosetta project.\n\nResponsibilities:\n- export_to_markdown(session_data: dict) -> str\n  Assembles full onboarding document from session state\n  Sections: database overview, table glossary, sample queries, schema summary\n- format_table_section(table: dict) -> str\n  Formats one table entry with name, description, columns\n- format_query_section(query: dict) -> str\n  Formats one query with title, annotation, SQL code block\n\nPure Python only. No external dependencies.\nInput is the full st.session_state dict.\nOutput is a single Markdown string ready for st.download_button.",
+  "outputs": ["src/markdown_exporter.py"]
+}

@@ -1,0 +1,10 @@
+{
+  "session_id": "ibm_bob_03_query_executor",
+  "tool": "IBM Bob Hackathon",
+  "date": "2026-05-15",
+  "location": "C:\\Users\\carlo\\Desktop",
+  "cost_bobcoin": 0.08,
+  "tags": ["build", "backend", "security"],
+  "prompt": "Build src/query_executor.py for the Rosetta project.\n\nResponsibilities:\n- validate_query(query: str) -> bool\n  Reject any query containing: DROP, DELETE, UPDATE, INSERT, ALTER, CREATE, TRUNCATE\n  Allow: SELECT, WITH (CTEs)\n  Case-insensitive check\n- execute_query(conn_string: str, query: str) -> pd.DataFrame\n  Max 1000 rows, 30 second timeout\n  Return empty DataFrame on error, not exception\n- execute_with_timeout(conn_string: str, query: str, timeout: int = 30) -> pd.DataFrame\n  Wrapper that enforces timeout\n\nUse pyodbc and pandas. No ORM.\nRaise ValueError if validate_query returns False.\nLog errors, never expose raw connection strings in error messages.",
+  "outputs": ["src/query_executor.py"]
+}
