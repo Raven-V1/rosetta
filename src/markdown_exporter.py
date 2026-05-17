@@ -100,7 +100,10 @@ def export_to_markdown(session_data: dict) -> str:
             # Add connections if available
             connections = table_info.get('connections', [])
             if connections:
-                sections.append(f"**Connected to**: {', '.join(connections)}")
+                if isinstance(connections, list):
+                    sections.append(f"**Connected to**: {', '.join(str(c) for c in connections)}")
+                elif isinstance(connections, (int, float)) and connections > 0:
+                    sections.append(f"**Connections**: {int(connections)} relationships")
                 sections.append("")
         
         sections.append("---")

@@ -13,14 +13,12 @@ Responsibilities:
 import streamlit as st
 from dotenv import load_dotenv
 from src import session_manager, llm_generator, query_executor
+from src.ui_utils import render_sidebar_brand
 
 # Load environment variables
 load_dotenv()
 
-# Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=80)
-st.sidebar.markdown("**Belvenar Analytics**")
-st.sidebar.divider()
+render_sidebar_brand()
 
 # Page title with IBM Carbon design tokens
 st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Recommended Queries</h1>", unsafe_allow_html=True)

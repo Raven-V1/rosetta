@@ -7,14 +7,12 @@ import streamlit as st
 import time
 from dotenv import load_dotenv
 from src import session_manager, db_inspector, llm_generator
+from src.ui_utils import render_sidebar_brand
 
 # Load environment variables
 load_dotenv()
 
-# Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=80)
-st.sidebar.markdown("**Belvenar Analytics**")
-st.sidebar.divider()
+render_sidebar_brand()
 
 st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Rosetta</h1>", unsafe_allow_html=True)
 st.markdown("<p style='font-size:0.875rem;color:#c6c6c6;'>SQL Server Database Documentation Generator</p>", unsafe_allow_html=True)

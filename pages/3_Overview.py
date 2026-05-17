@@ -13,11 +13,9 @@ Responsibilities:
 
 import streamlit as st
 from src import session_manager
+from src.ui_utils import render_sidebar_brand
 
-# Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=80)
-st.sidebar.markdown("**Belvenar Analytics**")
-st.sidebar.divider()
+render_sidebar_brand()
 
 # Page title with IBM Carbon design tokens
 st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Overview</h1>", unsafe_allow_html=True)

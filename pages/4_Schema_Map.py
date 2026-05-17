@@ -14,11 +14,9 @@ Responsibilities:
 
 import streamlit as st
 from src import session_manager
+from src.ui_utils import render_sidebar_brand
 
-# Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=80)
-st.sidebar.markdown("**Belvenar Analytics**")
-st.sidebar.divider()
+render_sidebar_brand()
 
 # Page title with IBM Carbon design tokens
 st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Schema Map</h1>", unsafe_allow_html=True)
@@ -135,8 +133,9 @@ try:
         parent_table = rel.get('parent_table', '')
         referenced_table = rel.get('referenced_table', '')
         
-        # Only include edge if both parent and referenced tables are in filtered set
-        if parent_table in filtered_table_names and referenced_table in filtered_table_names:
+        # Only include edge if both tables are in filtered set and not a self-referential loop
+        if (parent_table in filtered_table_names and referenced_table in filtered_table_names
+                and parent_table != referenced_table):
             # Create edge without label
             edge = Edge(
                 source=parent_table,

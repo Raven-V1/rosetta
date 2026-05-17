@@ -11,7 +11,12 @@ Responsibilities:
 All queries are read-only. No ORM used.
 """
 
-import pyodbc
+try:
+    import pyodbc
+    _pyodbc_available = True
+except ImportError:
+    _pyodbc_available = False
+
 import pandas as pd
 import re
 import logging
@@ -148,6 +153,10 @@ def execute_with_timeout(conn_string: str, query: str, timeout: int = 30) -> pd.
     Example:
         >>> df = execute_with_timeout(conn_str, "SELECT * FROM LargeTable", timeout=10)
     """
+    if not _pyodbc_available:
+        logger.error("pyodbc is not installed on this platform; SQL Server query execution is unavailable")
+        return pd.DataFrame()
+
     try:
         # Connect with timeout
         conn = pyodbc.connect(conn_string, timeout=timeout)
@@ -166,19 +175,13 @@ def execute_with_timeout(conn_string: str, query: str, timeout: int = 30) -> pd.
         logger.info(f"Query executed successfully: {len(df)} rows returned")
         return df
         
-    except pyodbc.Error as e:
-        # Database-specific errors
-        logger.error(f"Database error during query execution: {type(e).__name__}")
-        return pd.DataFrame()
-        
-    except pd.io.sql.DatabaseError as e:
-        # Pandas SQL errors (including timeout)
-        logger.error(f"Query execution error: {type(e).__name__}")
-        return pd.DataFrame()
-        
     except Exception as e:
-        # Catch-all for unexpected errors
-        logger.error(f"Unexpected error during query execution: {type(e).__name__}")
+        if _pyodbc_available and isinstance(e, pyodbc.Error):
+            logger.error(f"Database error during query execution: {type(e).__name__}")
+        elif isinstance(e, pd.io.sql.DatabaseError):
+            logger.error(f"Query execution error: {type(e).__name__}")
+        else:
+            logger.error(f"Unexpected error during query execution: {type(e).__name__}")
         return pd.DataFrame()
 
 

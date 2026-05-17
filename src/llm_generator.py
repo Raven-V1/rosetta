@@ -374,8 +374,8 @@ def _get_fallback_queries(metadata: Dict) -> List[Dict]:
         name = table.get('name', '')
         full_name = f"{schema}.{name}"
         queries.append({
-            'title': f"Select All from {name}",
-            'annotation': f"Retrieves all records from the {name} table.",
+            'title': f"Preview {name}",
+            'annotation': f"Returns the first 100 rows of {name}. Use this to inspect the table structure and sample data.",
             'sql': f"SELECT TOP 100 * FROM {full_name};"
         })
     return queries

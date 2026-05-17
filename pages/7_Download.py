@@ -15,19 +15,22 @@ Responsibilities:
 
 import streamlit as st
 from src import session_manager, markdown_exporter
+from src.ui_utils import render_sidebar_brand
 from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import re
 
-# Sidebar branding
-st.sidebar.image("assets/Belvenar_logo.png", width=80)
-st.sidebar.markdown("**Belvenar Analytics**")
-st.sidebar.divider()
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    _reportlab_available = True
+except ImportError:
+    _reportlab_available = False
+
+render_sidebar_brand()
 
 # Page title with IBM Carbon design tokens
 st.markdown("<h1 style='font-size:2rem;font-weight:600;color:#f4f4f4;'>Download</h1>", unsafe_allow_html=True)
@@ -247,18 +250,24 @@ def generate_pdf(markdown_content: str, database_name: str) -> bytes:
     return buffer.getvalue()
 
 
-# Generate PDF
-pdf_data = generate_pdf(markdown_content, database_name)
-
 filename = f"{database_name}_onboarding.pdf"
 
-st.download_button(
-    label="Download PDF File",
-    data=pdf_data,
-    file_name=filename,
-    mime="application/pdf",
-    use_container_width=True
-)
+if _reportlab_available:
+    pdf_data = generate_pdf(markdown_content, database_name)
+    st.download_button(
+        label="Download PDF File",
+        data=pdf_data,
+        file_name=filename,
+        mime="application/pdf",
+        use_container_width=True
+    )
+else:
+    st.markdown("""
+    <div style='background:#2d0709;border:1px solid #da1e28;border-radius:4px;padding:1rem;margin:1rem 0;'>
+        <span style='color:#ff8389;'>✗ PDF export unavailable: <code>reportlab</code> is not installed on this server.
+        Run <code>pip install reportlab</code> to enable PDF downloads.</span>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown(f"""
 <div style='background:#001141;border:1px solid #0f62fe;border-radius:4px;padding:1rem;margin:1rem 0;'>
