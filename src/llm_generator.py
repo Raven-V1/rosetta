@@ -117,23 +117,25 @@ def generate_overview(metadata: Dict) -> str:
             schema_summary.append(f"- {schema}: {', '.join(tables[:5])}" +
                                 (" ..." if len(tables) > 5 else ""))
 
-        prompt = f"""You are analyzing a SQL Server database for onboarding documentation.
+        prompt = f"""You are writing onboarding documentation for a new developer joining a team.
 
 Database: {database_name}
 Tables: {table_count}
 Relationships: {relationship_count}
 
-Sample tables by schema:
+Tables by schema:
 {chr(10).join(schema_summary)}
 
-Write a concise 2-3 sentence overview paragraph that:
-1. Identifies the likely business domain/purpose of this database
-2. Describes the main functional areas based on table names
-3. Mentions the scale (number of tables and relationships)
+Write a rich 4-5 sentence overview paragraph for the onboarding guide that:
+1. Identifies the business domain and purpose of this database
+2. Describes the main functional areas (e.g. customers, orders, inventory, HR)
+3. Explains how the main areas connect to each other
+4. Mentions the scale and any notable characteristics
+5. Recommends where a new developer should start exploring
 
-Be specific and professional."""
+Write in clear, professional English. Be specific — name actual table groups, not generic descriptions."""
 
-        overview = _generate_text(prompt=prompt, max_tokens=1000, temperature=0.3)
+        overview = _generate_text(prompt=prompt, max_tokens=1500, temperature=0.3)
         return overview.strip()
 
     except ValueError:
@@ -173,15 +175,20 @@ def generate_table_descriptions(tables: List[Dict]) -> Dict[str, str]:
             cols = ', '.join(t['columns'][:5]) + (' ...' if len(t['columns']) > 5 else '')
             table_list.append(f"- {t['full_name']}: columns [{cols}]")
 
-        prompt = f"""Generate a concise one-sentence description for each table below.
+        prompt = f"""You are writing a database glossary for a new developer joining a team.
+For each table below, write a 2-sentence description:
+- Sentence 1: what this table stores and its business purpose
+- Sentence 2: key relationships, typical usage patterns, or what a developer should know first
 
 Tables:
 {chr(10).join(table_list)}
 
-Return a JSON object where keys are full table names and values are descriptions.
-Example: {{"dbo.Users": "Stores user account credentials and profile information"}}"""
+Return a JSON object where keys are full table names (schema.table) and values are the 2-sentence descriptions.
+Example: {{"dbo.Orders": "Stores customer purchase orders including status, totals, and shipping details. It is the central transaction table — most reporting queries start here and join to order_items, customers, and payments."}}
 
-        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1000, temperature=0.3))
+Return only valid JSON, no other text."""
+
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=3500, temperature=0.3))
         return json.loads(response_text)
 
     except json.JSONDecodeError:
@@ -248,22 +255,27 @@ def generate_sample_queries(metadata: Dict) -> List[Dict]:
         for rel in relationships[:10]:
             rel_summary.append(f"- {rel.get('parent_table', '')} -> {rel.get('referenced_table', '')}")
 
-        prompt = f"""Generate 10-15 sample SQL queries for database onboarding.
+        prompt = f"""You are writing onboarding sample queries for a new developer joining a team.
+Generate 12-15 SQL queries that help someone understand and navigate this database.
 
 Database: {database_name}
 
-Tables:
+Tables (with columns):
 {chr(10).join(table_list)}
 
-Relationships:
-{chr(10).join(rel_summary) if rel_summary else "None provided"}
+Foreign key relationships:
+{chr(10).join(rel_summary) if rel_summary else "No relationships provided"}
 
-Include SELECT, JOIN, aggregation, and filtering queries.
+Requirements:
+- Cover a mix of: simple lookups, JOINs across related tables, aggregations (COUNT, SUM, AVG), status/date filtering
+- Avoid trivial SELECT * queries — prefer queries that answer a real business question
+- Each annotation must explain WHAT business question this query answers, not just what SQL it runs
+- Use correct table and column names from the lists above
 
-Return a JSON array:
-[{{"title": "...", "annotation": "...", "sql": "..."}}]"""
+Return a JSON array only, no other text:
+[{{"title": "Short descriptive title", "annotation": "What business question this answers and when you would run it", "sql": "SELECT ..."}}]"""
 
-        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1000, temperature=0.3))
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=2500, temperature=0.3))
         return json.loads(response_text)
 
     except json.JSONDecodeError:
@@ -322,17 +334,23 @@ def rank_important_tables(metadata: Dict) -> List[Dict]:
                 f"{t['row_count']} rows, columns [{cols}]"
             )
 
-        prompt = f"""Identify the top 5 most important tables for database onboarding.
+        prompt = f"""You are writing a "Start Here" guide for a new developer joining a team.
+Identify the 5 most important tables a new developer should understand first.
 
 Database: {database_name}
 
-Tables sorted by relationships:
+Tables sorted by number of relationships (most connected first):
 {chr(10).join(table_list)}
 
-Return a JSON array of exactly 5 objects:
+For each table, write:
+- description: 1 clear sentence on what this table stores
+- reasoning: 2-3 sentences explaining WHY this table matters for onboarding — what business process it drives, what other tables depend on it, and what a developer should look at first
+- connections: integer count of relationships
+
+Return a JSON array of exactly 5 objects, no other text:
 [{{"table": "schema.name", "description": "...", "reasoning": "...", "connections": 0}}]"""
 
-        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1000, temperature=0.3))
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=1500, temperature=0.3))
         ranked_tables = json.loads(response_text)
         return ranked_tables[:5]
 
