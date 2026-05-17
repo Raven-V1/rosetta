@@ -7,6 +7,7 @@ Uses llama-3.1-8b-instant model via REST API.
 import os
 import re
 import json
+import time
 import logging
 import requests
 from typing import Dict, List, Optional
@@ -37,57 +38,46 @@ def _extract_json(text: str) -> str:
 
 
 def _generate_text(prompt: str, max_tokens: int = 1000, temperature: float = 0.3) -> str:
-    """
-    Generate text using Groq API.
-    
-    Args:
-        prompt: The prompt to send to the LLM
-        max_tokens: Maximum tokens to generate
-        temperature: Temperature for generation (0.0-1.0)
-        
-    Returns:
-        Generated text response
-        
-    Raises:
-        ValueError: If GROQ_API_KEY is not configured or API call fails
-    """
-    # Read API key fresh for each call
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("LLM features require GROQ_API_KEY to be configured")
-    
+
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
-    
     payload = {
         "model": MODEL_ID,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
-        "temperature": temperature
+        "temperature": temperature,
     }
-    
-    try:
-        response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
-        logger.info(f"Groq API response status: {response.status_code}")
-        response.raise_for_status()
-        result = response.json()
-        return result["choices"][0]["message"]["content"]
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error in generation: {e.response.status_code} {e.response.text[:300]}")
-        if e.response.status_code == 401:
-            raise ValueError("Unauthorized: Invalid GROQ_API_KEY") from e
-        elif e.response.status_code == 429:
-            raise ValueError("Rate limit exceeded. Please try again later.") from e
-        else:
+
+    # Retry once on rate-limit (429) with a 62-second wait (Groq resets per minute)
+    for attempt in range(2):
+        try:
+            response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            logger.info(f"Groq API status: {response.status_code} (attempt {attempt + 1})")
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code
+            logger.error(f"HTTP {status} from Groq (attempt {attempt + 1}): {e.response.text[:200]}")
+            if status == 401:
+                raise ValueError("Unauthorized: Invalid GROQ_API_KEY") from e
+            if status == 429:
+                if attempt == 0:
+                    logger.info("Rate limited — waiting 62 seconds before retry")
+                    time.sleep(62)
+                    continue
+                raise ValueError("Rate limit exceeded. Please wait a minute and try again.") from e
             raise ValueError(f"Groq API call failed: {str(e)}") from e
-    except requests.exceptions.Timeout:
-        raise ValueError("Request timed out. Please try again.") from None
-    except KeyError as e:
-        raise ValueError(f"Unexpected response format from Groq API: {str(e)}") from e
-    except Exception as e:
-        raise ValueError(f"Groq API call failed: {str(e)}") from e
+        except requests.exceptions.Timeout:
+            raise ValueError("Request timed out. Please try again.") from None
+        except KeyError as e:
+            raise ValueError(f"Unexpected response format from Groq API: {str(e)}") from e
+        except Exception as e:
+            raise ValueError(f"Groq API call failed: {str(e)}") from e
 
 
 def generate_overview(metadata: Dict) -> str:
@@ -188,7 +178,7 @@ Example: {{"dbo.Orders": "Stores customer purchase orders including status, tota
 
 Return only valid JSON, no other text."""
 
-        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=3500, temperature=0.3))
+        response_text = _extract_json(_generate_text(prompt=prompt, max_tokens=2500, temperature=0.3))
         return json.loads(response_text)
 
     except json.JSONDecodeError:
