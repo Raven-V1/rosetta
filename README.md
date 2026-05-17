@@ -5,6 +5,7 @@ Onboarding tool for developers inheriting unfamiliar databases.
 Rosetta connects to a relational database, inspects its schema, and generates an interactive onboarding experience. A new developer can understand table structure, relationships, and common query patterns within their first hour instead of spending their first week reverse-engineering the schema from code.
 
 Built by Belvenar Analytics for the IBM Bob Hackathon, May 2026.
+Developed in collaboration with IBM Bob (AI pair programmer) and Claude Code (Anthropic).
 
 ---
 
@@ -172,6 +173,18 @@ All AI features use the Groq API with the `llama-3.1-8b-instant` model. The app 
 - **Important Tables** — Top 5 tables with reasoning about business role and onboarding priority
 
 If `GROQ_API_KEY` is not set, the app falls back to static descriptions and preview queries so all pages remain usable.
+
+---
+
+## Credits
+
+| Contributor | Role |
+|---|---|
+| Carlos Velazquez (Belvenar Analytics) | Project lead, product design, architecture |
+| IBM Bob | Primary AI pair programmer — architecture decisions, code generation, debugging throughout the build |
+| Claude Code (Anthropic) | Secondary AI pair programmer — refactoring, bug fixes, PDF generation, LLM prompt engineering |
+
+This project was built during the IBM Bob Hackathon (May 15-17, 2026) using IBM Bob as the primary development tool.
 
 ---
 
